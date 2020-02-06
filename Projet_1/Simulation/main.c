@@ -1,0 +1,182 @@
+#include <time.h>
+#include "TP1.h"
+#include "sauvegarde.h"
+
+#define LARGEURS  32                   /* Largeur de la fenêtre */
+#define HAUTEURS  17                   /* Hauteur de la fenêtre */
+#define LARGEUR_E 40                   /* Largeur de la fenêtre */
+#define HAUTEUR_E 10                   /* Hauteur de la fenêtre */
+#define LARGEUR LARGEURS + LARGEUR_E   /* Largeur de la fenêtre */
+#define HAUTEUR 5                      /* Hauteur de la fenêtre */
+
+#define POSX    0                      /* Position horizontale de la fenêtre */
+#define POSY    3                      /* Position verticale de la fenêtre */
+#define POSXS   0                      /* Position horizontale de la fenêtre */
+#define POSYS   POSY + HAUTEUR + 1     /* Position verticale de la fenêtre */
+#define POSX_E  POSXS + LARGEURS + 1   /* Position horizontale de la fenêtre */
+#define POSY_E  POSY + HAUTEUR + 1     /* Position verticale de la fenêtre */
+
+
+
+int main(int argc, char * argv[]){
+    /* Matrice indique la présence de flocons (1) et d'obstacles (2) */
+    unsigned char matrice[NB_L][NB_C];
+    int i, nbf, update/*,check*/;
+    WINDOW* fenetre, *simul, * etat,* sous_fenetre, * sous_simul, * sous_etat;
+    /*int sourisX, sourisY; */
+    int floc [2];
+    /*int fichier,fich2;*/
+    /*unsigned char chaine [NB_C*NB_L+1];*/
+    floc[0]=-1;floc[1]=-1;
+    nbf=0;
+    if(argc==3){
+
+        /* Initialisation de ncurses */
+        ncurses_initialiser();
+        ncurses_souris();
+        ncurses_couleurs(); 
+
+        /*Initialisation de la matrice*/
+        /*
+        if(!strcmp(argv[1],"-N")){
+
+            fichier=ouvrir_fichier(argv[2]);
+            if(fichier==-1){
+                perror("Error open: ");
+                return EXIT_FAILURE;
+            }
+            check=lire_fichier(fichier,chaine);
+            if(check == -1){
+            perror("Error read: ");
+            return EXIT_FAILURE;
+            }
+            ecrire_matrice(matrice,chaine);
+
+
+        }
+        else{
+            if(!strcmp(argv[1],"-S")){
+                fichier=ouvrir_fichier(argv[2]);
+                if(fichier==-1){
+                    perror("Error open: ");
+                    return EXIT_FAILURE;
+                }
+                check=lire_fichier(fichier,chaine);
+                if(check == -1){
+                perror("Error read: ");
+                return EXIT_FAILURE;
+                }
+                ecrire_matrice(matrice,chaine);
+                ecrire_flocon(floc,chaine);
+            }
+            else{
+                return EXIT_FAILURE;
+            }
+        }
+        */
+        /*On a ici la matrice à simuler*/
+        /* Vérification des dimensions du terminal */
+        if((COLS < POSX + LARGEUR) || (LINES < POSYS + HAUTEURS)) {
+            ncurses_stopper();
+            fprintf(stderr, 
+                "Les dimensions du terminal sont insufisantes : l=%d,h=%d au lieu de l=%d,h=%d\n", 
+                COLS, LINES, POSX + LARGEUR, POSY + HAUTEUR);
+            exit(EXIT_FAILURE);
+        }  
+    
+        /* Création de la fenêtre Info*/
+        fenetre = creerFenetre(HAUTEUR, LARGEUR, POSY, POSX);
+        sous_fenetre = creerSousFenetre(HAUTEUR - 2,LARGEUR - 2, POSY + 1, POSX + 1, TRUE, fenetre);
+
+        /* Création de la fenêtre Simulation*/
+        simul = creerFenetre(HAUTEURS, LARGEURS, POSYS, POSXS);
+        sous_simul = creerSousFenetre(HAUTEURS - 2,LARGEURS - 2, POSYS + 1, POSXS + 1, FALSE, simul);
+        
+        /* Création de la fenêtre Etat*/
+        etat = creerFenetre(HAUTEUR_E, LARGEUR_E, POSY_E, POSX_E);
+        sous_etat = creerSousFenetre(HAUTEUR_E - 2,LARGEUR_E - 2, POSY_E + 1, POSX_E + 1, TRUE, etat);
+
+        /* Definition de la palette */
+        init_pair(1, COLOR_BLUE, COLOR_WHITE);
+        init_pair(2, COLOR_BLACK, COLOR_RED);
+        init_pair(3, COLOR_WHITE, COLOR_GREEN);
+        init_pair(4, COLOR_BLUE, COLOR_MAGENTA);
+
+        /* Colore le fond de la fenêtre */
+        wbkgd(fenetre, COLOR_PAIR(1));
+        wrefresh(fenetre);
+        wbkgd(simul, COLOR_PAIR(2));
+        wrefresh(simul);
+        wbkgd(etat, COLOR_PAIR(3));
+        wrefresh(etat);
+
+        wbkgd(sous_fenetre, COLOR_PAIR(1));
+        wrefresh(sous_fenetre);
+        wbkgd(sous_simul, COLOR_PAIR(2));
+        wrefresh(sous_simul);
+        wbkgd(sous_etat, COLOR_PAIR(3));
+        wrefresh(sous_etat);
+
+        /* Ecriture des titres des fenêtres et des obstacles*/
+        /*afficheMsgFen(fenetre, "   Infos ");*/
+        afficheMsgFen(fenetre, argv[2]);
+        afficheMsgFen(simul, "   Simulation ");
+        afficheMsgFen(etat, "   Etat ");
+        afficheZone(matrice,sous_simul);
+
+        /* Gestion des flocons*/
+        printw("Cliquez dans la fenetre ; pressez F2 pour quitter...");  
+        timeout(200);
+        while((i = getch()) != KEY_F(2)) {
+            /*if((i == KEY_MOUSE) && (souris_getpos(&sourisX, &sourisY, NULL) == OK)) {
+                if((sourisX > POSXS) && (sourisX < POSXS + LARGEURS - 1) &&
+                (sourisY > POSYS) && (sourisY < POSYS + HAUTEURS - 1)) {*/
+                    if((floc[0]==-1)||(floc[1]==-1)){
+                        
+                        ajouterFlocon(matrice, &nbf,floc);
+                        mvwprintw(sous_simul, floc[0], floc[1], "*");
+                        wrefresh(sous_simul);
+
+                        wprintw(sous_fenetre, "Nouveau flocon : colonne %d\n", floc[1]);
+                        wrefresh(sous_fenetre);
+                        wprintw(sous_etat, "Nombre flocon : %d\n", nbf);
+                        wrefresh(sous_etat);
+                    }
+                    else{
+                        mvwprintw(sous_simul, floc[0], floc[1], " ");
+                        update = updateFlocon(matrice, floc);
+                        mvwprintw(sous_simul, floc[0], floc[1], "*");
+                        if (update==0){    
+                            afficheMsgFen(sous_fenetre, "Flocon bloque\n");
+                            floc[0] = -1;
+                            floc[1] = -1;
+                        }
+                        wrefresh(sous_simul);
+                    }
+                /*}
+            }*/     
+        }
+
+        /*Sauvegarde du fichier .sim*/
+
+
+        /* Suppression des fenêtres et sous-fenêtres*/
+        delwin(fenetre);
+        delwin(simul);
+        delwin(etat);
+        delwin(sous_fenetre);
+        delwin(sous_simul);
+        delwin(sous_etat);
+    
+        /* Arrêt de ncurses */
+        ncurses_stopper();
+    }
+    else{
+        printw("Pas assez d'argument !\n\tEntrez -N et le nom du décor .bin existant\n");
+        printw("\tEntrez -S et le nom du fichier .sim pour reprendre la simulation\n");
+        return EXIT_FAILURE;
+    }
+
+
+    return EXIT_SUCCESS;
+}

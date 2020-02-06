@@ -1,0 +1,8 @@
+il faut compiler les fichiers avec un "make"
+en lançant la commande "./main -N nomfich.bin" on lance une simulation avec un nouveau décor nomfich
+en lançant la commande "./main -N nomfich.sim" on relance une simulation 
+en lançant la commande "./editeur" on peut créer un nouveau décor (non sauvegardé)
+
+les fichiers TP1 et sauvegarde contiennent les fonctionc
+les fichiers mains1 et mains2 sont des programmes de test des fonctions de sauvegarde de fichier
+les fichiers main et editeur sont les deux programmes principaux
