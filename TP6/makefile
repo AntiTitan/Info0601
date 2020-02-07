@@ -2,7 +2,7 @@
 # CONFIGURATION GENERALE
 #
 
-EXEC = prog1
+EXEC = prog1 client trieur 
 OBJETS = 
 NOM_PROJET = tp6
 
@@ -22,9 +22,9 @@ OBJETS_O = $(OBJETS) $(EXEC_O)
 #
 # ARGUMENTS ET COMPILATEUR
 #
-
+CLE_MSG = 1056
 CC = gcc
-CCFLAGS = -Wall -O3 -Werror -ansi -pedantic -g
+CCFLAGS = -Wall -O3 -Werror -ansi -pedantic -g -D CLE=$(CLE_MSG)
 CCLIBS = 
 
 #
@@ -86,4 +86,6 @@ archive: clean
 
 # DEPENDANCES
 prog1.o: prog1.c struct.h
+client.o:client.c
+trieur.o:trieur.c
 
