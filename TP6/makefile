@@ -86,6 +86,6 @@ archive: clean
 
 # DEPENDANCES
 prog1.o: prog1.c struct.h
-client.o:client.c
-trieur.o:trieur.c
+client.o: client.c struct.h
+trieur.o: trieur.c struct.h
 

@@ -7,6 +7,8 @@ Le client envoie un msg avec son id et celui du destinataire du msg
 Le trieur vérifie que le client qui envoie et celui qui doit recevoir sont enregistres
     Il renvoie le msg au destinataire avec TYPE_TRIEUR
 
+Pour l'enregistrement, s'il est accepté, le trieur envoie au client
+son id, ou -1 s'il n'y a plus de place
 tableau statique de taille MAX_CLIENT
 */
 #define MAX_CLIENT 10
@@ -18,7 +20,7 @@ tableau statique de taille MAX_CLIENT
 #include <sys/msg.h>    /* Pour msgget, msgsnd, msgrcv */
 #include <errno.h>      /* Pour errno */
 #include <sys/stat.h>   /* Pour S_IRUSR, S_IWUSR */
-
+#include <unistd.h> 
 #include "struct.h"
 
 void initZero(enregistre_t * newClient, msgClient_t * newMsg, requete_t * newReq){
@@ -28,8 +30,9 @@ void initZero(enregistre_t * newClient, msgClient_t * newMsg, requete_t * newReq
 }
 
 int main(int argc, char* argv[]) {
-    int i, indice, trouve, msqid, clients[MAX_CLIENT] = {-1};
-    long type,choix;
+    int i, indice, trouve, msqid;
+    pid_t clients[MAX_CLIENT] = {-1};
+   /* long type,choix; */
     enregistre_t newClient;
     msgClient_t newMsg;
     requete_t newReq;
