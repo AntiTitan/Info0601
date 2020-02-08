@@ -5,10 +5,11 @@ Les client s'enregistre auprès du trieur si il existe deja on l'arrete (en le r
 Le client envoie un msg avec son id et celui du destinataire du msg
     envoie d'un message avec TYPE_CLIENT par le client
 Le trieur vérifie que le client qui envoie et celui qui doit recevoir sont enregistres
-    Il renvoie le msg au destinataire avec TYPE_TRIEUR
+    Il renvoie le msg au destinataire avec pour type l'id (pid) du destinataire
 
 Pour l'enregistrement, s'il est accepté, le trieur envoie au client
 son id, ou -1 s'il n'y a plus de place
+
 tableau statique de taille MAX_CLIENT
 */
 #define MAX_CLIENT 10
@@ -37,10 +38,12 @@ int main(int argc, char* argv[]) {
     msgClient_t newMsg;
     requete_t newReq;
     initZero(&newClient,&newMsg,&newReq);
-    /*On init tous les types à 0
+    /*
+      On init tous les types à 0
       Une fois qu'on a tenté de récup chaque type de message,
       On fait un switch, si un des message a un type != de 0,
-      On traite son cas, puis on reboucle*/
+      On traite son cas, puis on reboucle
+    */
 
     /* Création de la file si elle n'existe pas */
     if((msqid = msgget((key_t)CLE, S_IRUSR | S_IWUSR | IPC_CREAT | IPC_EXCL)) == -1) {
@@ -50,7 +53,7 @@ int main(int argc, char* argv[]) {
                 if(errno == ENOENT)
                     fprintf(stderr, "Aucune file présente avec la clé %d.\n", (key_t)CLE);
                 else
-                    perror("Erreur lors de la récupération de la file ");
+                    perror("Erreur lors de la récupération de la file (trieur)");
                 exit(EXIT_FAILURE);
             }
         }
@@ -62,7 +65,7 @@ int main(int argc, char* argv[]) {
 
     while(1){
 
-        /* *************** Attente d'une requête: TYPE_ENREGISTRE *************** */
+        /* *************** Gestion d'une requête: TYPE_ENREGISTRE *************** */
         printf("Serveur : en attente d'une requête...\n");
         if(msgrcv(msqid, &newClient, sizeof(enregistre_t) - sizeof(long), TYPE_ENREGISTRE, 0) == -1) {
             perror("Erreur lors de la réception d'une requête ");
@@ -88,15 +91,28 @@ int main(int argc, char* argv[]) {
                 indice = clients[i];
                 i++;
             }
-            if (i<MAX_CLIENT) clients[i] = newClient.id;
-            else printf("Le nombre MAX de clients est atteint\n");
+            if (i<MAX_CLIENT) {
+                clients[i] = newClient.id;
+                printf("Client %d enregistré\n", newClient.id);
+                newClient.id = i;
+            }
+            else { /*Plus de place pour un nouveau client*/
+                newClient.id = -1;
+                printf("Le nombre MAX de clients est atteint\n");
+            }
+            /*Envoie de la confirmation ou du refus pour manque de place*/
+            if(msgsnd(msqid, &newClient, sizeof(enregistre_t) - sizeof(long), 0) == -1) {
+                perror("Erreur lors de l'envoi de la requete ");
+                exit(EXIT_FAILURE);
+            }
+
         }
         
 
-        /* *************** Attente d'un msg: TYPE_CLIENT *************** */
-        printf("Serveur : en attente d'un msg...\n");
-        if(msgrcv(msqid, &newMsg, sizeof(enregistre_t) - sizeof(long), TYPE_CLIENT, 0) == -1) {
-            perror("Erreur lors de la réception d'un msg ");
+        /* *************** Gestion d'un msg: TYPE_CLIENT *************** */
+        printf("Serveur : verification de la reception des msg...\n");
+        if(msgrcv(msqid, &newMsg, sizeof(msgClient_t) - sizeof(long), TYPE_CLIENT, 0) == -1) {
+            perror("Erreur lors de la réception d'un msg (trieur)");
             exit(EXIT_FAILURE);
         }
 
@@ -111,15 +127,21 @@ int main(int argc, char* argv[]) {
         }
         /* Le client existe: le trieur lui envoie le msg*/
         if (trouve == 1) {
-
+            newReq.type = newMsg.dest;
+            strcpy(newReq.chaine, newMsg.chaine);
+            if(msgsnd(msqid, &newReq, sizeof(requete_t) - sizeof(long), 0) == -1) {
+                perror("Erreur lors de l'envoie d'un msg depuis le trieur ");
+                exit(EXIT_FAILURE);
+            }
         }
-        /* ********* Traitement des messages reçues ********* */
-        if(newClient.type!=0){
+        else printf("Le client %d n'exite pas!!!", newMsg.dest);
+        /* *************** Gestion des messages reçues *************** */
+        /*if(newClient.type!=0){
 
         }
         if(newMsg.type!=0){
 
-        }
+        }*/
     }
     return EXIT_SUCCESS;
 }

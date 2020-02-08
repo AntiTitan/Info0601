@@ -9,7 +9,7 @@
 /* Type de message envoye par le client au trieur */
 #define TYPE_CLIENT 200
 /* Type de message envoye par le trieur au clilent */
-#define TYPE_TRIEUR 300
+/* pid du client destinataire */
 
 /* Structure utilisee pour les requetes/ par le trieur pour envoyer un msg au client */
 typedef struct {

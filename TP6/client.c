@@ -1,18 +1,19 @@
 /*
-Reception: seulement le type TYPE_TRIEUR
+Reception: 
+    le type égal à son pid: réception d'un msg
+    TYPE_ENREGISTRE : vérification de la demande d'enregistrement
 Envoie:
-    TYPE_ENREGISTRER : une var de type enregistre_t
+    TYPE_ENREGISTRE : une var de type enregistre_t
     TYPE_CLIENT : une var msgClient_t
 On laisse tourner les clients, ils envoie leur pid pour s'identifier
 et receveront comme id leur ordre d'enregistrement (pour le trieur)
 On laisse le programme en attente d'un message à envoyer
     soit un id et un message
     soit la commande check, pour vérifier si le client a reçu un ou des messages
-Les clients se terminent soient seuls -> ils envoient un message au trieur
+Les clients se terminent soit seuls -> ils envoient un message au trieur
 ou quand le trieur se termine
 */
 
-#define MAX_CLIENT 10
 #define _XOPEN_SOURCE
 
 #include <string.h>
@@ -24,20 +25,30 @@ ou quand le trieur se termine
 #include <unistd.h> 
 #include "struct.h"
 
+void viderBuffer(){
+    int c = 0;
+    while (c != '\n' && c != EOF){
+        c = getchar();
+    }
+}
+
 int main(int argc, char * argv []){
-    int msqid,enregistre=0,enCours=1,pidd,dest;
+    int msqid,enregistre=0,enCours=1,pidd,dest, ordre=0;
     enregistre_t newRegister;
     msgClient_t newMsg;
+    requete_t msgRecu;
     pid_t pid;
-    char ordre [CHAINE_MAX], message [CHAINE_MAX];
+    char /*ordre [CHAINE_MAX],*/ message [CHAINE_MAX];
 
     pid=getpid();
     pidd=(int)pid;
+
     /* Récupération de la file */
     if((msqid = msgget((key_t)CLE, 0)) == -1) {
-        perror("Erreur lors de la récupération de la file ");
+        perror("Erreur lors de la récupération de la file (Client)");
         exit(EXIT_FAILURE);
     }
+
     while(enCours){
         
         if(!enregistre){
@@ -45,62 +56,84 @@ int main(int argc, char * argv []){
             newRegister.type=TYPE_ENREGISTRE ;
             newRegister.id=pidd;
             if(msgsnd(msqid, &newRegister, sizeof(enregistre_t) - sizeof(long), 0) == -1) {
-                perror("Erreur lors de l'envoi de la requete ");
+                perror("Erreur lors de la demande d'enregistrement ");
                 exit(EXIT_FAILURE);
             }
             printf("Client %d : requete d'enregistrement envoyée.\n",pidd);
 
-            printf("Serveur : en attente d'une requête...\n");
-            if(msgrcv(msqid, &newRegister, sizeof(enregistre_t) - sizeof(long), id, 0) == -1) {
-                perror("Erreur lors de la réception d'une requête ");
+            printf("Client : en attente d'une réponse...\n");
+            if(msgrcv(msqid, &newRegister, sizeof(enregistre_t) - sizeof(long), TYPE_ENREGISTRE, 0) == -1) {
+                perror("Erreur lors de l'attente de la verification d'enregistrement ");
                 exit(EXIT_FAILURE);
             }
             if(newRegister.id==-1){
-                printf("Enregistrement impossible");
+                printf("Enregistrement impossible, limite de client atteinte");
                 return EXIT_FAILURE;
             }
-            printf("Enregistrement accepté, vous êtes le client %d\n",newRegister.id);
+            printf("Enregistrement accepté, je suis le client %d\n",newRegister.id);
             enregistre=1;
         }
 
-        /*Attente d'un message à envoyer*/
-        printf("Donnez une commande à executer :");
-        if(scanf("%20s",ordre)!=1){
-            printf("Problème avec saisie de la chaine\n");
-            return EXIT_FAILURE;
+        /*Demande au client ce qu'il veut faire*/
+        printf("Donnez une commande à executer (1, 2 ou 3):\n");
+        printf("\t1_quit: arrêt du client\n");
+        printf("\t2_check: verification des messages\n");
+        printf("\t3_msg: envoi d'un message à un client\n");
+        /*Demande jusqu'a ce que l'ordre soit correct'*/
+        while(ordre<1 && ordre>3) {
+            viderBuffer();
+            if(scanf("%d",&ordre)!=1){
+                printf("Problème avec saisie de l'ordre\n");
+                return EXIT_FAILURE;
+            }
         }
-        /*Verification de la saisie
-            quit: arrêt du client
-            check: verification des messages
-            msg: envoi d'un message à un client
-        */
-        if(ordre=="msg"){
-            /*Envoi message*/
-            printf("Destinataire :");
-            if(scanf("%d",dest)!=1){
+
+        /*Execution de l'ordre recu*/
+        if(ordre==3){
+            /*Envoi d'un message*/
+            printf("\nLe client envoie un message\n");
+            printf("Destinataire : ");
+            viderBuffer();
+            if(scanf("%d",&dest)!=1){
                 printf("Problème avec saisie du destinataire\n");
                 return EXIT_FAILURE;
             }
-            printf("Message : ");
+            printf("Message (20 max) : ");
+            viderBuffer();
             if(scanf("%20s",message)!=1){
-                printf("Problème avec saisie du destinataire\n");
+                printf("Problème avec saisie du message\n");
                 return EXIT_FAILURE;
             }
             newMsg.type=TYPE_CLIENT;
-            newMsg.id=newRegister.id;
+            newMsg.id=newRegister.id;/*id du trieur pas pidd*/
             newMsg.dest=dest;
             strcpy(newMsg.chaine,message);
             if(msgsnd(msqid, &newMsg, sizeof(msgClient_t) - sizeof(long), 0) == -1) {
                 perror("Erreur lors de l'envoi du message ");
                 exit(EXIT_FAILURE);
             }
-            printf("Client %d : message envoyé.\n",newRegister.id);
+            printf("Client %d : message envoyé au client %d.\n",newRegister.id, newMsg.dest);
         }
         
-        if(ordre=="check"){
+        if(ordre==2){
             /*Checking des messages reçus*/
+            printf("Client : verification des msg recu...\n");
+            if(msgrcv(msqid, &msgRecu, sizeof(requete_t) - sizeof(long), pidd, 0) == -1) {
+                perror("Erreur lors de la lecture d'un msg ");
+                exit(EXIT_FAILURE);
+            }
         }
-        /*Suppr du client du trieur*/
+
+        if (ordre == 1) {
+            /*Demande d'arret*/
+            if(msgsnd(msqid, &newRegister, sizeof(enregistre_t) - sizeof(long), 0) == -1) {
+                perror("Erreur lors de l'envoi de la demande d'arret ");
+                exit(EXIT_FAILURE);
+            }
+            printf("Client %d : demande d'arret envoyee.\n",pidd);
+            
+            enCours = 0;
+        }
     }
    
 
