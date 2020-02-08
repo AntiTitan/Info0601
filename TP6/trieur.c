@@ -31,7 +31,7 @@ void initZero(enregistre_t * newClient, msgClient_t * newMsg, requete_t * newReq
 }
 
 int main(int argc, char* argv[]) {
-    int i, indice, trouve, msqid;
+    int i, j, indice, trouve, msqid;
     pid_t clients[MAX_CLIENT] = {-1};
    /* long type,choix; */
     enregistre_t newClient;
@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
     while(1){
 
         /* *************** Gestion d'une requête: TYPE_ENREGISTRE *************** */
-        printf("Serveur : en attente d'une requête...\n");
+        printf("Trieur : en attente d'une requête...\n");
         if(msgrcv(msqid, &newClient, sizeof(enregistre_t) - sizeof(long), TYPE_ENREGISTRE, 0) == -1) {
             perror("Erreur lors de la réception d'une requête ");
             exit(EXIT_FAILURE);
@@ -86,17 +86,20 @@ int main(int argc, char* argv[]) {
         /* Le client n'existe pas: il demande l'enregistrement */
         else {
             i = 0;
-            indice = clients[i];
+            indice = 0;
             while (indice != -1) {
                 indice = clients[i];
+                printf("client[%d] = %d\n", i, indice);
                 i++;
             }
             if (i<MAX_CLIENT) {
                 clients[i] = newClient.id;
                 printf("Client %d enregistré\n", newClient.id);
+                newClient.type = newClient.id;
                 newClient.id = i;
             }
             else { /*Plus de place pour un nouveau client*/
+                newClient.type = newClient.id;
                 newClient.id = -1;
                 printf("Le nombre MAX de clients est atteint\n");
             }
@@ -107,10 +110,9 @@ int main(int argc, char* argv[]) {
             }
 
         }
-        
 
         /* *************** Gestion d'un msg: TYPE_CLIENT *************** */
-        printf("Serveur : verification de la reception des msg...\n");
+        printf("Trieur : verification de la reception des msg...\n");
         if(msgrcv(msqid, &newMsg, sizeof(msgClient_t) - sizeof(long), TYPE_CLIENT, 0) == -1) {
             perror("Erreur lors de la réception d'un msg (trieur)");
             exit(EXIT_FAILURE);

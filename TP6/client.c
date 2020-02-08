@@ -62,7 +62,7 @@ int main(int argc, char * argv []){
             printf("Client %d : requete d'enregistrement envoyée.\n",pidd);
 
             printf("Client : en attente d'une réponse...\n");
-            if(msgrcv(msqid, &newRegister, sizeof(enregistre_t) - sizeof(long), TYPE_ENREGISTRE, 0) == -1) {
+            if(msgrcv(msqid, &newRegister, sizeof(enregistre_t) - sizeof(long), pidd, 0) == -1) {
                 perror("Erreur lors de l'attente de la verification d'enregistrement ");
                 exit(EXIT_FAILURE);
             }
@@ -80,7 +80,7 @@ int main(int argc, char * argv []){
         printf("\t2_check: verification des messages\n");
         printf("\t3_msg: envoi d'un message à un client\n");
         /*Demande jusqu'a ce que l'ordre soit correct'*/
-        while(ordre<1 && ordre>3) {
+        while(ordre<1 || ordre>3) {
             viderBuffer();
             if(scanf("%d",&ordre)!=1){
                 printf("Problème avec saisie de l'ordre\n");
