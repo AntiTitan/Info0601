@@ -31,7 +31,7 @@ void initZero(enregistre_t * newClient, msgClient_t * newMsg, requete_t * newReq
 }
 
 int main(int argc, char* argv[]) {
-    int i, j, indice, trouve, msqid;
+    int i, indice, trouve, msqid;
     pid_t clients[MAX_CLIENT] = {-1};
    /* long type,choix; */
     enregistre_t newClient;
