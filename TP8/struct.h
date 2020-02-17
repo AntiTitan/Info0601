@@ -6,7 +6,7 @@
 
 /* Structure utilisee pour les requetes/ par le trieur pour envoyer un msg au client */
 typedef struct {
-    pid_t pid = -1;
+    pid_t pid;
     char chaine [CHAINE_MAX];
 } msg_t;
 
