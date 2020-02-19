@@ -7,9 +7,15 @@
 #include <stdlib.h>     /* Pour exit, EXIT_SUCCESS, EXIT_FAILURE */
 #include <sys/shm.h>    /* Pour shmget, shmctl */
 
-int main() {
-  int shmid;
+int main(int argc, char * argv []) {
+  int shmid,CLE;
 
+  if (argc != 2) {
+    printf("Nombre d'arguments incorrect: ./memoireSupprime  CLE_IPC \n");
+    exit(EXIT_FAILURE);
+  }
+  CLE = atoi(argv[1]);
+  
   /* Récupération du segment de mémoire partagée */
   if((shmid = shmget((key_t)CLE, 0, 0)) == -1) {
     perror("Erreur lors de la recupération du segment de mémoire partagée ");

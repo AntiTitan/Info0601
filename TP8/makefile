@@ -2,7 +2,7 @@
 # CONFIGURATION GENERALE
 #
 
-EXEC = msgPartage
+EXEC = msgPartage memoireSupprime coordinateur
 OBJETS = 
 NOM_PROJET = TP8
 
@@ -25,7 +25,7 @@ OBJETS_O = $(OBJETS) $(EXEC_O)
 
 CC = gcc
 CCFLAGS = -Wall -O3 -Werror -ansi -pedantic -D _XOPEN_SOURCE
-CCLIBS = 
+CCLIBS = -lncurses
 
 #
 # REGLES
@@ -37,6 +37,12 @@ all: $(OBJETS) $(EXEC_O)
 	$(CC) -o $$i $$i.o $(OBJETS) $(CCLIBS); \
 	done
 	@echo "Termine."
+
+msg:
+	@echo "Creation des objets..."
+
+debug: CCFLAGS = $(CCFLAGS_STD) -D _DEBUG_
+debug: all
 
 #
 # REGLES PAR DEFAUT
@@ -85,4 +91,8 @@ archive: clean
 	@echo "Termine."
 
 # DEPENDANCES
+ncurses.o: ncurses.c ncurses.h
+TP8.o: TP8.c TP8.h ncurses.h
 msgPartage.o: msgPartage.c
+memoireSupprime.o: memoireSupprime.c
+coordinateur.o: coordinateur.c TP8.h ncurses.h

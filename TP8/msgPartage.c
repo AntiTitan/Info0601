@@ -14,23 +14,31 @@ int main(int argc, char* argv[]) {
     msg_t* msg;
 
     if (argc != 3) {
-        printf("Nombre d'arguments incorrect:  %s CLE_IPC message", argv[0]);
+        printf("Nombre d'arguments incorrect: ./msgPartage  CLE_IPC message\n");
+        exit(EXIT_FAILURE);
     }
 
     msg = malloc(sizeof(msg_t));
     CLE = atoi(argv[1]); 
     strcpy(message, argv[2]);
-    strcpy(msg->chaine, "");
 
     /* Création d'un segment d'un message */
     if((shmid = shmget((key_t)CLE, sizeof(msg_t), S_IRUSR | S_IWUSR | IPC_CREAT | IPC_EXCL)) == -1) {
-    if(errno == EEXIST) {
-        fprintf(stderr, "Le segment de mémoire partagée (cle=%d) existe deja\n", CLE);
-        printf("message : %s\n", msg->chaine);
-    }
-    else
-        perror("Erreur lors de la création du segment de mémoire ");
-        exit(EXIT_FAILURE);
+        if(errno == EEXIST) {
+            fprintf(stderr, "Le segment de mémoire partagée (cle=%d) existe deja\n", CLE);
+
+            /* Récupération du segment de mémoire partagée */
+            if((shmid = shmget((key_t)CLE, 0, 0)) == -1) {
+                perror("Erreur lors de la récupération du segment de mémoire partagée ");
+                exit(EXIT_FAILURE);
+            }
+            
+            printf("Client : récupération du segment de mémoire partagée.\n");
+        }
+        else{
+            perror("Erreur lors de la création du segment de mémoire ");
+            exit(EXIT_FAILURE);
+        }
     }
     printf("Serveur : segment mémoire partagée créé.\n");
 
@@ -39,7 +47,7 @@ int main(int argc, char* argv[]) {
         perror("Erreur lors de l'attachement du segment de mémoire partagée ");
         exit(EXIT_FAILURE);
     }
-
+    printf("message precedent : %d\t%s\n",msg->pid, msg->chaine);
 
     /* Placement du message dans le segment de mémoire partagée */
     pid = getpid();
