@@ -43,6 +43,7 @@ void ncurses_couleurs() {
   init_pair(4, COLOR_WHITE, COLOR_YELLOW);
   init_pair(5, COLOR_WHITE, COLOR_MAGENTA);
   init_pair(6, COLOR_WHITE, COLOR_CYAN);
+  init_pair(7, COLOR_BLUE, COLOR_WHITE);
 }
 
 /**

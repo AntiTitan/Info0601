@@ -18,7 +18,10 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    msg = malloc(sizeof(msg_t));
+    if ((msg = malloc(sizeof(msg_t)))==NULL) {
+        perror("erreur malloc");
+        exit(EXIT_FAILURE);
+    }
     CLE = atoi(argv[1]); 
     strcpy(message, argv[2]);
 

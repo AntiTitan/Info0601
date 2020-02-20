@@ -2,8 +2,8 @@
 # CONFIGURATION GENERALE
 #
 
-EXEC = msgPartage memoireSupprime coordinateur
-OBJETS = 
+EXEC = msgPartage coordinateur
+OBJETS = ncurses.o TP8.o 
 NOM_PROJET = TP8
 
 #
@@ -24,7 +24,7 @@ OBJETS_O = $(OBJETS) $(EXEC_O)
 #
 
 CC = gcc
-CCFLAGS = -Wall -O3 -Werror -ansi -pedantic -D _XOPEN_SOURCE
+CCFLAGS = -Wall -O3 -Werror -g -ansi -pedantic -D _XOPEN_SOURCE
 CCLIBS = -lncurses
 
 #
@@ -94,5 +94,4 @@ archive: clean
 ncurses.o: ncurses.c ncurses.h
 TP8.o: TP8.c TP8.h ncurses.h
 msgPartage.o: msgPartage.c
-memoireSupprime.o: memoireSupprime.c
 coordinateur.o: coordinateur.c TP8.h ncurses.h

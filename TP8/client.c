@@ -3,31 +3,41 @@
 #include <sys/shm.h>    /* Pour shmget, shmat, shmdt */
 #include <errno.h>      /* Pour errno */
 #include <sys/stat.h>   /* Pour S_IRUSR, S_IWUSR */
-#include "struct.h"
+#include "TP8.h"
 
-#define NB_L 15
-#define NB_C 30
 
 int main(int argc, char* argv[]) {
-    int shmid, i, j, CLE, c, l;
-    unsigned char grille[NB_L][NB_C] ;
+    int shmid, semid, i, CLE_S, CLE_M, c, l;
+    grille_t * grille;
 
     if (argc != 3) {
-        printf("Nombre d'arguments incorrect:  ");
+        fprintf(stderr, "Nombre d'arguments incorrect:  ./client CLE_MEM, CLE_SEM\n");
+        exit(EXIT_FAILURE);
     }
 
-    CLE = atoi(argv[1]);
+    if ((grille = malloc(sizeof(grille_t)))==NULL) {
+        fprintf(stderr, "erreur malloc");
+        exit(EXIT_FAILURE);
+    }
+    CLE_M = atoi(argv[1]);
+    CLE_S = atoi(argv[2]);
 
-    /* Récupération du segment d'un grille de 15x30 message */
-    if((shmid = shmget((key_t)CLE, 0, 0)) == -1) {
-        perror("Erreur lors de la récupération du segment de mémoire ");
+    /* Récupération du tableau de sémaphores */
+    if((semid = semget((key_t)CLE_S, 0, 0)) == -1) {
+        fprintf(stderr, "Erreur lors de la récupération du tableau de sémaphores ");
+        exit(EXIT_FAILURE);
+    }
+
+    /* Récupération du segment de memoire partagee */
+    if((shmid = shmget((key_t)CLE_M, 0, 0)) == -1) {
+        fprintf(stderr, "Erreur lors de la récupération du segment de mémoire ");
         exit(EXIT_FAILURE);
     }
     printf("Client : récupération du segment de mémoire partagée.\n");
 
-    /* Attachement du segment de mémoire partagée */
+    /* Attachement de la grille au segment de mémoire partagée */
     if((grille = shmat(shmid, NULL, 0)) == (void*)-1) {
-        perror("Erreur lors de l'attachement du segment de mémoire partagée ");
+        fprintf(stderr, "Erreur lors de l'attachement du segment de mémoire partagée ");
         exit(EXIT_FAILURE);
     }
 /*A mettre dans une boucle*/
