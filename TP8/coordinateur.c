@@ -4,7 +4,7 @@
 #include <errno.h>      /* Pour errno */
 #include <sys/stat.h>   /* Pour S_IRUSR, S_IWUSR */
 #include "TP8.h"
-#include "ncurses.h"
+#include "ncurses.h" 
 
 #define LARGEUR  32     /* Largeur de la fenêtre */
 #define HAUTEUR  17     /* Hauteur de la fenêtre */
@@ -13,7 +13,7 @@
 #define NBSEM    NB_C*NB_L
 
 int main(int argc, char* argv[]) {
-    int shmid, semid, i, CLE_S, CLE_M;
+    int shmid, semid, i, CLE_S, CLE_M,k;
     unsigned short val[NBSEM];/*tableau d'initialisation des sem*/
     grille_t* grille;
     WINDOW* fenetre, * sous_fenetre;
@@ -53,6 +53,11 @@ int main(int argc, char* argv[]) {
     /* Initialisation de la grille */
     initZone(grille->grille);
 
+    /* Initialisation de ncurses */
+    ncurses_initialiser();
+    ncurses_souris();
+    ncurses_couleurs();
+
     /* Création d'un segment d'un grille de 15x30 message */
     if((shmid = shmget((key_t)CLE_M, sizeof(grille), S_IRUSR | S_IWUSR | IPC_CREAT | IPC_EXCL)) == -1) {
         ncurses_stopper();
@@ -72,10 +77,7 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    /* Initialisation de ncurses */
-    ncurses_initialiser();
-    ncurses_souris();
-    ncurses_couleurs();
+    
 
     /* Vérification des dimensions du terminal */
     if((COLS < POSX + LARGEUR) || (LINES < POSY + HAUTEUR)) {
@@ -98,7 +100,7 @@ int main(int argc, char* argv[]) {
 
     printw("Cliquez dans la fenetre ; pressez F2 pour quitter...");  
     timeout(500);
-    while((i = getch()) != KEY_F(2)) {
+    while((k = getch()) != KEY_F(2)) {
         /* Affichage de la grille du segment de mémoire partagée */
         afficheZone(grille->grille, sous_fenetre, CLE_S);
     }
