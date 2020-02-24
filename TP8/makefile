@@ -2,7 +2,7 @@
 # CONFIGURATION GENERALE
 #
 
-EXEC = msgPartage coordinateur suppr test
+EXEC = msgPartage coordinateur suppr test client
 OBJETS = ncurses.o TP8.o 
 NOM_PROJET = TP8
 
@@ -95,5 +95,6 @@ ncurses.o: ncurses.c ncurses.h
 TP8.o: TP8.c TP8.h ncurses.h
 msgPartage.o: msgPartage.c
 coordinateur.o: coordinateur.c TP8.h ncurses.h
+client.o:client.c TP8.h ncurses.h
 suppr.o:suppr.c
 test.o:test.c

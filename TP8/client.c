@@ -3,6 +3,9 @@
 #include <sys/shm.h>    /* Pour shmget, shmat, shmdt */
 #include <errno.h>      /* Pour errno */
 #include <sys/stat.h>   /* Pour S_IRUSR, S_IWUSR */
+#include <unistd.h>
+#include <sys/types.h>
+#include <time.h>
 #include "TP8.h"
 
 /**
@@ -17,7 +20,7 @@ int alea(int a, int b) {
 
 
 int main(int argc, char* argv[]) {
-    int shmid, semid, i, CLE_S, CLE_M, c, l, color;
+    int shmid, semid, CLE_S, CLE_M, c, l, color;
     grille_t * grille;
 
     if (argc != 3) {
@@ -57,83 +60,163 @@ int main(int argc, char* argv[]) {
         srand(time(NULL)*getpid());
         c = alea(0, NB_C-1);
         l = alea(0, NB_L-1);
-        if (c==0 && l==0) {               /*coin haut gauche*/
-            Peux(NB_C*l+c, CLE_S);        /*case*/
-            Peux(NB_C*l+c+1, CLE_S);      /*droite*/
-            Peux(NB_C*(l+1)+c, CLE_S);    /*bas*/
-            color = grille.grille[c][l];
-            if (grille.grille[c][l+1] > color) color = grille.grille[c][l+1];
-            if (grille.grille[c+1][l] > color) color = grille.grille[c+1][l];
-            color++;
-            grille.grille[c][l] = color % 5;
-            grille.grille[c+1][l] = color % 5;
-            grille.grille[c][l+1] = color % 5;
-            Vas(NB_C*l+c, CLE_S);
-            Vas(NB_C*l+c+1, CLE_S);
-            Vas(NB_C*(l+1)+c, CLE_S);
+        if (c==0) {               
+            if(l==0){                       /*coin haut gauche*/
+                Peux(NB_C*l+c, CLE_S);        /*case*/
+                Peux(NB_C*l+c+1, CLE_S);      /*droite*/
+                Peux(NB_C*(l+1)+c, CLE_S);    /*bas*/
+                color = grille->grille[c][l];
+                if (grille->grille[c][l+1] > color) color = grille->grille[c][l+1];
+                if (grille->grille[c+1][l] > color) color = grille->grille[c+1][l];
+                color++;
+                grille->grille[c][l] = color % 5;
+                grille->grille[c+1][l] = color % 5;
+                grille->grille[c][l+1] = color % 5;
+                Vas(NB_C*l+c, CLE_S);
+                Vas(NB_C*l+c+1, CLE_S);
+                Vas(NB_C*(l+1)+c, CLE_S);
+            }
+            else if (l==NB_L-1) {         /*coin bas gauche*/
+                Peux(NB_C*l+c, CLE_S);            /*case*/
+                Peux(NB_C*(l-1)+c, CLE_S);        /*haut*/
+                Peux(NB_C*l+c+1, CLE_S);          /*droite*/
+                color = grille->grille[c][l];
+                if (grille->grille[c][l-1] > color) color = grille->grille[c][l-1];
+                if (grille->grille[c+1][l] > color) color = grille->grille[c+1][l];
+                color++;
+                grille->grille[c][l] = color % 5;
+                grille->grille[c][l-1] = color % 5;
+                grille->grille[c+1][l] = color % 5;
+                Vas(NB_C*l, CLE_S);
+                Vas(NB_C*(l-1), CLE_S);
+                Vas(NB_C*l+1, CLE_S);
+            }
+            else{                       /*premiere colonne*/
+                Peux(NB_C*l+c, CLE_S);          /*case*/
+                Peux(NB_C*(l+1)+c, CLE_S);      /*bas*/
+                Peux(NB_C*l+c+1, CLE_S);        /*droite*/
+                Peux(NB_C*l+c-1, CLE_S);        /*gauche*/
+                color = grille->grille[c][l];
+                if (grille->grille[c][l+1] > color) color = grille->grille[c][l+1];
+                if (grille->grille[c+1][l] > color) color = grille->grille[c+1][l];
+                if (grille->grille[c-1][l] > color) color = grille->grille[c-1][l];
+                color++;
+                grille->grille[c][l] = color % 5;
+                grille->grille[c][l+1] = color % 5;
+                grille->grille[c+1][l] = color % 5;
+                grille->grille[c-1][l] = color % 5;
+                Vas(NB_C*l+c, CLE_S);          /*case*/
+                Vas(NB_C*(l+1)+c, CLE_S);      /*bas*/
+                Vas(NB_C*l+c+1, CLE_S);        /*droite*/
+                Vas(NB_C*l+c-1, CLE_S);        /*gauche*/
+            }
+        } 
+        else if (c==NB_C-1) {
+            if(l==NB_L-1){  /*coin bas droite*/
+                Peux(NB_C*l+c, CLE_S);
+                Peux(NB_C*(l-1)+c, CLE_S);
+                Peux(NB_C*l+c-1, CLE_S);
+                color = grille->grille[c][l];
+                if (grille->grille[c][l-1] > color) color = grille->grille[c][l-1];
+                if (grille->grille[c-1][l] > color) color = grille->grille[c-1][l];
+                color++;
+                grille->grille[c][l] = color % 5;
+                grille->grille[c-1][l] = color % 5;
+                grille->grille[c][l-1] = color % 5;
+                Vas(NB_C*l+c, CLE_S);
+                Vas(NB_C*(l-1)+c, CLE_S);
+                Vas(NB_C*l+c-1, CLE_S);
+            }
+            else if (c==NB_C-1 && l==0) {/*coin haut droite*/
+                Peux(NB_C*l+c, CLE_S);
+                Peux(NB_C*l+c-1, CLE_S);
+                Peux(NB_C*(l+1)+c, CLE_S);
+                color = grille->grille[c][l];
+                if (grille->grille[c][l+1] > color) color = grille->grille[c][l+1];
+                if (grille->grille[c-1][l] > color) color = grille->grille[c-1][l];
+                color++;
+                grille->grille[c][l] = color % 5;
+                grille->grille[c-1][l] = color % 5;
+                grille->grille[c][l+1] = color % 5;
+                Vas(NB_C*l+c, CLE_S);
+                Vas(NB_C*l+c-1, CLE_S);
+                Vas(NB_C*(l+1)+c, CLE_S);
+            }
+            else{                       /*dernière colonne*/
+                Peux(NB_C*l+c, CLE_S);          /*case*/
+                Peux(NB_C*(l-1)+c, CLE_S);      /*haut*/
+                Peux(NB_C*l+c+1, CLE_S);        /*droite*/
+                Peux(NB_C*l+c-1, CLE_S);        /*gauche*/
+                color = grille->grille[c][l];
+                if (grille->grille[c][l-1] > color) color = grille->grille[c][l-1];
+                if (grille->grille[c+1][l] > color) color = grille->grille[c+1][l];
+                if (grille->grille[c-1][l] > color) color = grille->grille[c-1][l];
+                color++;
+                grille->grille[c][l] = color % 5;
+                grille->grille[c][l-1] = color % 5;
+                grille->grille[c+1][l] = color % 5;
+                grille->grille[c-1][l] = color % 5;
+                Vas(NB_C*l+c, CLE_S);          /*case*/
+                Vas(NB_C*(l-1)+c, CLE_S);      /*haut*/
+                Vas(NB_C*l+c+1, CLE_S);        /*droite*/
+                Vas(NB_C*l+c-1, CLE_S);        /*gauche*/
+            }
         }
-        else if (c==0 && l==NB_L-1) {         /*coin bas gauche*/
-            Peux(NB_C*l+c, CLE_S);            /*case*/
+        else if(l==0){                  /*première ligne*/
+            Peux(NB_C*l+c, CLE_S);          /*case*/
+            Peux(NB_C*(l+1)+c, CLE_S);      /*bas*/
+            Peux(NB_C*l+c+1, CLE_S);        /*droite*/
             Peux(NB_C*(l-1)+c, CLE_S);        /*haut*/
-            Peux(NB_C*l+c+1, CLE_S);          /*droite*/
-            color = grille.grille[c][l];
-            if (grille.grille[c][l-1] > color) color = grille.grille[c][l-1];
-            if (grille.grille[c+1][l] > color) color = grille.grille[c+1][l];
+            color = grille->grille[c][l];
+            if (grille->grille[c][l+1] > color) color = grille->grille[c][l+1];
+            if (grille->grille[c+1][l] > color) color = grille->grille[c+1][l];
+            if (grille->grille[c][l-1] > color) color = grille->grille[c][l-1];
             color++;
-            grille.grille[c][l] = color % 5;
-            grille.grille[c][l-1] = color % 5;
-            grille.grille[c+1][l] = color % 5;
-            Vas(NB_C*l, CLE_S);
-            Vas(NB_C*(l-1), CLE_S);
-            Vas(NB_C*l+1, CLE_S);
+            grille->grille[c][l] = color % 5;
+            grille->grille[c][l+1] = color % 5;
+            grille->grille[c+1][l] = color % 5;
+            grille->grille[c][l-1] = color % 5;
+            Vas(NB_C*l+c, CLE_S);          /*case*/
+            Vas(NB_C*(l+1)+c, CLE_S);      /*bas*/
+            Vas(NB_C*l+c+1, CLE_S);        /*droite*/
+            Vas(NB_C*(l-1)+c, CLE_S);        /*haut*/
         }
-        else if (c==NB_C-1 && l==NB_L-1) {/*coin bas droite*/
-            Peux(NB_C*l+c, CLE_S);
-            Peux(NB_C*(l-1)+c, CLE_S);
-            Peux(NB_C*l+c-1, CLE_S);
-            color = grille.grille[c][l];
-            if (grille.grille[c][l-1] > color) color = grille.grille[c][l-1];
-            if (grille.grille[c-1][l] > color) color = grille.grille[c-1][l];
+        else if(l==NB_L-1){             /*dernière ligne*/
+            Peux(NB_C*l+c, CLE_S);          /*case*/
+            Peux(NB_C*(l+1)+c, CLE_S);      /*bas*/
+            Peux(NB_C*l+c-1, CLE_S);        /*gauche*/
+            Peux(NB_C*(l-1)+c, CLE_S);        /*haut*/
+            color = grille->grille[c][l];
+            if (grille->grille[c][l+1] > color) color = grille->grille[c][l+1];
+            if (grille->grille[c-1][l] > color) color = grille->grille[c+1][l];
+            if (grille->grille[c][l-1] > color) color = grille->grille[c][l-1];
             color++;
-            grille.grille[c][l] = color % 5;
-            grille.grille[c-1][l] = color % 5;
-            grille.grille[c][l-1] = color % 5;
-            Vas(NB_C*l+c, CLE_S);
-            Vas(NB_C*(l-1)+c, CLE_S);
-            Vas(NB_C*l+c-1, CLE_S);
+            grille->grille[c][l] = color % 5;
+            grille->grille[c][l+1] = color % 5;
+            grille->grille[c-1][l] = color % 5;
+            grille->grille[c][l-1] = color % 5;
+            Vas(NB_C*l+c, CLE_S);          /*case*/
+            Vas(NB_C*(l+1)+c, CLE_S);      /*bas*/
+            Vas(NB_C*l+c-1, CLE_S);        /*gauche*/
+            Vas(NB_C*(l-1)+c, CLE_S);        /*haut*/
         }
-        else if (c==NB_C-1 && l==0) {/*coin haut droite*/
-            Peux(NB_C*l+c, CLE_S);
-            Peux(NB_C*l+c-1, CLE_S);
-            Peux(NB_C*(l+1)+c, CLE_S);
-            color = grille.grille[c][l];
-            if (grille.grille[c][l+1] > color) color = grille.grille[c][l+1];
-            if (grille.grille[c-1][l] > color) color = grille.grille[c-1][l];
-            color++;
-            grille.grille[c][l] = color % 5;
-            grille.grille[c-1][l] = color % 5;
-            grille.grille[c][l+1] = color % 5;
-            Vas(NB_C*l+c, CLE_S);
-            Vas(NB_C*l+c-1, CLE_S);
-            Vas(NB_C*(l+1)+c, CLE_S);
-        }
-        else {
+        else {                          /*milieu tableau*/
             Peux(NB_C*l+c, CLE_S);
             Peux(NB_C*l+c-1, CLE_S);/*gauche*/
             Peux(NB_C*l+c+1, CLE_S);/*droite*/
             Peux(NB_C*(l-1)+c, CLE_S);/*haut*/
             Peux(NB_C*(l+1)+c, CLE_S);/*bas*/
-            color = grille.grille[c][l];
-            if (grille.grille[c-1][l] > color) color = grille.grille[c-1][l];
-            if (grille.grille[c+1][l] > color) color = grille.grille[c+1][l];
-            if (grille.grille[c][l-1] > color) color = grille.grille[c][l-1];
-            if (grille.grille[c][l+1] > color) color = grille.grille[c][l+1];
+            color = grille->grille[c][l];
+            if (grille->grille[c-1][l] > color) color = grille->grille[c-1][l];
+            if (grille->grille[c+1][l] > color) color = grille->grille[c+1][l];
+            if (grille->grille[c][l-1] > color) color = grille->grille[c][l-1];
+            if (grille->grille[c][l+1] > color) color = grille->grille[c][l+1];
             color++;
-            grille.grille[c][l] = color % 5;
-            grille.grille[c-1][l] = color % 5;
-            grille.grille[c+1][l] = color % 5;
-            grille.grille[c][l-1] = color % 5;
-            grille.grille[c][l+1] = color % 5;
+            grille->grille[c][l] = color % 5;
+            grille->grille[c-1][l] = color % 5;
+            grille->grille[c+1][l] = color % 5;
+            grille->grille[c][l-1] = color % 5;
+            grille->grille[c][l+1] = color % 5;
             Vas(NB_C*l+c, CLE_S);
             Vas(NB_C*l+c-1, CLE_S);
             Vas(NB_C*l+c+1, CLE_S);
