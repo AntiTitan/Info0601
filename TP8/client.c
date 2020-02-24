@@ -20,7 +20,7 @@ int alea(int a, int b) {
 
 
 int main(int argc, char* argv[]) {
-    int shmid, semid, CLE_S, CLE_M, c, l, color;
+    int shmid, semid, CLE_S, CLE_M, c, l, color, cpt;
     grille_t * grille;
 
     if (argc != 3) {
@@ -40,6 +40,7 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "Erreur lors de la récupération du tableau de sémaphores ");
         exit(EXIT_FAILURE);
     }
+    printf("Client : récupération du tableau de sémaphores.\n");
 
     /* Récupération du segment de memoire partagee */
     if((shmid = shmget((key_t)CLE_M, 0, 0)) == -1) {
@@ -53,13 +54,16 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "Erreur lors de l'attachement du segment de mémoire partagée ");
         exit(EXIT_FAILURE);
     }
-/*A mettre dans une boucle*/
+    printf("attachement au segment de memoire\n");
 
-    while(1) {
+    cpt = 0;
+
+    while(cpt != 10) {
         /* Modification de la grille du segment de mémoire partagée */
         srand(time(NULL)*getpid());
         c = alea(0, NB_C-1);
         l = alea(0, NB_L-1);
+        printf("c=%d, l=%d \n", c, l);
         if (c==0) {               
             if(l==0){                       /*coin haut gauche*/
                 Peux(NB_C*l+c, CLE_S);        /*case*/
@@ -69,6 +73,7 @@ int main(int argc, char* argv[]) {
                 if (grille->grille[c][l+1] > color) color = grille->grille[c][l+1];
                 if (grille->grille[c+1][l] > color) color = grille->grille[c+1][l];
                 color++;
+                printf("color : %d  ", color%5);
                 grille->grille[c][l] = color % 5;
                 grille->grille[c+1][l] = color % 5;
                 grille->grille[c][l+1] = color % 5;
@@ -84,6 +89,7 @@ int main(int argc, char* argv[]) {
                 if (grille->grille[c][l-1] > color) color = grille->grille[c][l-1];
                 if (grille->grille[c+1][l] > color) color = grille->grille[c+1][l];
                 color++;
+                printf("color : %d  ", color%5);
                 grille->grille[c][l] = color % 5;
                 grille->grille[c][l-1] = color % 5;
                 grille->grille[c+1][l] = color % 5;
@@ -101,6 +107,7 @@ int main(int argc, char* argv[]) {
                 if (grille->grille[c+1][l] > color) color = grille->grille[c+1][l];
                 if (grille->grille[c-1][l] > color) color = grille->grille[c-1][l];
                 color++;
+                printf("color : %d  ", color%5);
                 grille->grille[c][l] = color % 5;
                 grille->grille[c][l+1] = color % 5;
                 grille->grille[c+1][l] = color % 5;
@@ -113,13 +120,14 @@ int main(int argc, char* argv[]) {
         } 
         else if (c==NB_C-1) {
             if(l==NB_L-1){  /*coin bas droite*/
-                Peux(NB_C*l+c, CLE_S);
-                Peux(NB_C*(l-1)+c, CLE_S);
-                Peux(NB_C*l+c-1, CLE_S);
+                Peux(NB_C*l+c, CLE_S);            /*case*/
+                Peux(NB_C*(l-1)+c, CLE_S);        /*haut*/
+                Peux(NB_C*l+c-1, CLE_S);          /*gauche*/
                 color = grille->grille[c][l];
                 if (grille->grille[c][l-1] > color) color = grille->grille[c][l-1];
                 if (grille->grille[c-1][l] > color) color = grille->grille[c-1][l];
                 color++;
+                printf("color : %d  ", color%5);
                 grille->grille[c][l] = color % 5;
                 grille->grille[c-1][l] = color % 5;
                 grille->grille[c][l-1] = color % 5;
@@ -127,14 +135,15 @@ int main(int argc, char* argv[]) {
                 Vas(NB_C*(l-1)+c, CLE_S);
                 Vas(NB_C*l+c-1, CLE_S);
             }
-            else if (c==NB_C-1 && l==0) {/*coin haut droite*/
-                Peux(NB_C*l+c, CLE_S);
-                Peux(NB_C*l+c-1, CLE_S);
-                Peux(NB_C*(l+1)+c, CLE_S);
+            else if (l==0) {/*coin haut droite*/
+                Peux(NB_C*l+c, CLE_S);            /*case*/
+                Peux(NB_C*l+c-1, CLE_S);          /*gauche*/
+                Peux(NB_C*(l+1)+c, CLE_S);        /*bas*/
                 color = grille->grille[c][l];
                 if (grille->grille[c][l+1] > color) color = grille->grille[c][l+1];
                 if (grille->grille[c-1][l] > color) color = grille->grille[c-1][l];
                 color++;
+                printf("color : %d  ", color%5);
                 grille->grille[c][l] = color % 5;
                 grille->grille[c-1][l] = color % 5;
                 grille->grille[c][l+1] = color % 5;
@@ -145,20 +154,21 @@ int main(int argc, char* argv[]) {
             else{                       /*dernière colonne*/
                 Peux(NB_C*l+c, CLE_S);          /*case*/
                 Peux(NB_C*(l-1)+c, CLE_S);      /*haut*/
-                Peux(NB_C*l+c+1, CLE_S);        /*droite*/
+                Peux(NB_C*(l+1)+c, CLE_S);      /*bas*/
                 Peux(NB_C*l+c-1, CLE_S);        /*gauche*/
                 color = grille->grille[c][l];
                 if (grille->grille[c][l-1] > color) color = grille->grille[c][l-1];
-                if (grille->grille[c+1][l] > color) color = grille->grille[c+1][l];
+                if (grille->grille[c][l+1] > color) color = grille->grille[c][l+1];
                 if (grille->grille[c-1][l] > color) color = grille->grille[c-1][l];
                 color++;
+                printf("color : %d  ", color%5);
                 grille->grille[c][l] = color % 5;
                 grille->grille[c][l-1] = color % 5;
-                grille->grille[c+1][l] = color % 5;
+                grille->grille[c][l+1] = color % 5;
                 grille->grille[c-1][l] = color % 5;
                 Vas(NB_C*l+c, CLE_S);          /*case*/
                 Vas(NB_C*(l-1)+c, CLE_S);      /*haut*/
-                Vas(NB_C*l+c+1, CLE_S);        /*droite*/
+                Vas(NB_C*l+c+1, CLE_S);      /*bas*/
                 Vas(NB_C*l+c-1, CLE_S);        /*gauche*/
             }
         }
@@ -166,52 +176,55 @@ int main(int argc, char* argv[]) {
             Peux(NB_C*l+c, CLE_S);          /*case*/
             Peux(NB_C*(l+1)+c, CLE_S);      /*bas*/
             Peux(NB_C*l+c+1, CLE_S);        /*droite*/
-            Peux(NB_C*(l-1)+c, CLE_S);        /*haut*/
+            Peux(NB_C*l+c-1, CLE_S);        /*gauche*/
             color = grille->grille[c][l];
             if (grille->grille[c][l+1] > color) color = grille->grille[c][l+1];
             if (grille->grille[c+1][l] > color) color = grille->grille[c+1][l];
-            if (grille->grille[c][l-1] > color) color = grille->grille[c][l-1];
+            if (grille->grille[c-1][l] > color) color = grille->grille[c-1][l];
             color++;
+            printf("color : %d  ", color%5);
             grille->grille[c][l] = color % 5;
             grille->grille[c][l+1] = color % 5;
             grille->grille[c+1][l] = color % 5;
-            grille->grille[c][l-1] = color % 5;
+            grille->grille[c-1][l] = color % 5;
             Vas(NB_C*l+c, CLE_S);          /*case*/
             Vas(NB_C*(l+1)+c, CLE_S);      /*bas*/
             Vas(NB_C*l+c+1, CLE_S);        /*droite*/
-            Vas(NB_C*(l-1)+c, CLE_S);        /*haut*/
+            Vas(NB_C*l+c-1, CLE_S);        /*gauche*/
         }
         else if(l==NB_L-1){             /*dernière ligne*/
             Peux(NB_C*l+c, CLE_S);          /*case*/
-            Peux(NB_C*(l+1)+c, CLE_S);      /*bas*/
+            Peux(NB_C*l+c+1, CLE_S);        /*droite*/
             Peux(NB_C*l+c-1, CLE_S);        /*gauche*/
-            Peux(NB_C*(l-1)+c, CLE_S);        /*haut*/
+            Peux(NB_C*(l-1)+c, CLE_S);      /*haut*/
             color = grille->grille[c][l];
-            if (grille->grille[c][l+1] > color) color = grille->grille[c][l+1];
-            if (grille->grille[c-1][l] > color) color = grille->grille[c+1][l];
+            if (grille->grille[c+1][l] > color) color = grille->grille[c+1][l];
+            if (grille->grille[c-1][l] > color) color = grille->grille[c-1][l];
             if (grille->grille[c][l-1] > color) color = grille->grille[c][l-1];
             color++;
+            printf("color : %d  ", color%5);
             grille->grille[c][l] = color % 5;
-            grille->grille[c][l+1] = color % 5;
+            grille->grille[c+1][l] = color % 5;
             grille->grille[c-1][l] = color % 5;
             grille->grille[c][l-1] = color % 5;
             Vas(NB_C*l+c, CLE_S);          /*case*/
-            Vas(NB_C*(l+1)+c, CLE_S);      /*bas*/
+            Vas(NB_C*l+c+1, CLE_S);        /*droite*/
             Vas(NB_C*l+c-1, CLE_S);        /*gauche*/
-            Vas(NB_C*(l-1)+c, CLE_S);        /*haut*/
+            Vas(NB_C*(l-1)+c, CLE_S);      /*haut*/
         }
         else {                          /*milieu tableau*/
-            Peux(NB_C*l+c, CLE_S);
-            Peux(NB_C*l+c-1, CLE_S);/*gauche*/
-            Peux(NB_C*l+c+1, CLE_S);/*droite*/
-            Peux(NB_C*(l-1)+c, CLE_S);/*haut*/
-            Peux(NB_C*(l+1)+c, CLE_S);/*bas*/
+            Peux(NB_C*l+c, CLE_S);         /*case*/
+            Peux(NB_C*l+c-1, CLE_S);       /*gauche*/
+            Peux(NB_C*l+c+1, CLE_S);       /*droite*/
+            Peux(NB_C*(l-1)+c, CLE_S);     /*haut*/
+            Peux(NB_C*(l+1)+c, CLE_S);     /*bas*/
             color = grille->grille[c][l];
             if (grille->grille[c-1][l] > color) color = grille->grille[c-1][l];
             if (grille->grille[c+1][l] > color) color = grille->grille[c+1][l];
             if (grille->grille[c][l-1] > color) color = grille->grille[c][l-1];
             if (grille->grille[c][l+1] > color) color = grille->grille[c][l+1];
             color++;
+            printf("color : %d  ", color%5);
             grille->grille[c][l] = color % 5;
             grille->grille[c-1][l] = color % 5;
             grille->grille[c+1][l] = color % 5;
@@ -224,9 +237,11 @@ int main(int argc, char* argv[]) {
             Vas(NB_C*(l+1)+c, CLE_S);
 
         }
+        cpt++;
+        sleep(alea(1,2));
     }
 
-
+    printf("fin while\n");
 
     /* Détachement du segment de mémoire partagée */
     if(shmdt(grille) == -1) {
