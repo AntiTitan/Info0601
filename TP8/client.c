@@ -70,8 +70,8 @@ int main(int argc, char* argv[]) {
                 Peux(NB_C*l+c+1, CLE_S);      /*droite*/
                 Peux(NB_C*(l+1)+c, CLE_S);    /*bas*/
                 color = grille->grille[c][l];
-                if (grille->grille[c][l+1] > color) color = grille->grille[c][l+1];
-                if (grille->grille[c+1][l] > color) color = grille->grille[c+1][l];
+                if (grille->grille[c+1][l] > color) color = grille->grille[c][l+1];
+                if (grille->grille[c][l+1] > color) color = grille->grille[c+1][l];
                 color++;
                 printf("color : %d  ", color%5);
                 grille->grille[c][l] = color % 5;
@@ -95,27 +95,27 @@ int main(int argc, char* argv[]) {
                 grille->grille[c+1][l] = color % 5;
                 Vas(NB_C*l, CLE_S);
                 Vas(NB_C*(l-1), CLE_S);
-                Vas(NB_C*l+1, CLE_S);
+                Vas(NB_C*l+c+1, CLE_S);
             }
             else{                       /*premiere colonne*/
                 Peux(NB_C*l+c, CLE_S);          /*case*/
                 Peux(NB_C*(l+1)+c, CLE_S);      /*bas*/
                 Peux(NB_C*l+c+1, CLE_S);        /*droite*/
-                Peux(NB_C*l+c-1, CLE_S);        /*gauche*/
+                Peux(NB_C*(l-1)+c, CLE_S);        /*haut*/
                 color = grille->grille[c][l];
                 if (grille->grille[c][l+1] > color) color = grille->grille[c][l+1];
                 if (grille->grille[c+1][l] > color) color = grille->grille[c+1][l];
-                if (grille->grille[c-1][l] > color) color = grille->grille[c-1][l];
+                if (grille->grille[c][l-1] > color) color = grille->grille[c][l-1];
                 color++;
                 printf("color : %d  ", color%5);
                 grille->grille[c][l] = color % 5;
                 grille->grille[c][l+1] = color % 5;
                 grille->grille[c+1][l] = color % 5;
-                grille->grille[c-1][l] = color % 5;
+                grille->grille[c][l-1] = color % 5;
                 Vas(NB_C*l+c, CLE_S);          /*case*/
                 Vas(NB_C*(l+1)+c, CLE_S);      /*bas*/
                 Vas(NB_C*l+c+1, CLE_S);        /*droite*/
-                Vas(NB_C*l+c-1, CLE_S);        /*gauche*/
+                Vas(NB_C*(l-1)+c, CLE_S);        /*haut*/
             }
         } 
         else if (c==NB_C-1) {
@@ -129,8 +129,8 @@ int main(int argc, char* argv[]) {
                 color++;
                 printf("color : %d  ", color%5);
                 grille->grille[c][l] = color % 5;
-                grille->grille[c-1][l] = color % 5;
                 grille->grille[c][l-1] = color % 5;
+                grille->grille[c-1][l] = color % 5;
                 Vas(NB_C*l+c, CLE_S);
                 Vas(NB_C*(l-1)+c, CLE_S);
                 Vas(NB_C*l+c-1, CLE_S);
@@ -140,8 +140,8 @@ int main(int argc, char* argv[]) {
                 Peux(NB_C*l+c-1, CLE_S);          /*gauche*/
                 Peux(NB_C*(l+1)+c, CLE_S);        /*bas*/
                 color = grille->grille[c][l];
-                if (grille->grille[c][l+1] > color) color = grille->grille[c][l+1];
                 if (grille->grille[c-1][l] > color) color = grille->grille[c-1][l];
+                if (grille->grille[c][l+1] > color) color = grille->grille[c][l+1];
                 color++;
                 printf("color : %d  ", color%5);
                 grille->grille[c][l] = color % 5;
@@ -168,7 +168,7 @@ int main(int argc, char* argv[]) {
                 grille->grille[c-1][l] = color % 5;
                 Vas(NB_C*l+c, CLE_S);          /*case*/
                 Vas(NB_C*(l-1)+c, CLE_S);      /*haut*/
-                Vas(NB_C*l+c+1, CLE_S);      /*bas*/
+                Vas(NB_C*(l+1)+c, CLE_S);      /*bas*/
                 Vas(NB_C*l+c-1, CLE_S);        /*gauche*/
             }
         }
