@@ -58,6 +58,15 @@ int main(int argc, char* argv[]) {
     ncurses_souris();
     ncurses_couleurs();
 
+    /* Definition de la palette */
+    init_pair(1, COLOR_WHITE, COLOR_BLACK);
+    init_pair(2, COLOR_WHITE, COLOR_RED);
+    init_pair(3, COLOR_WHITE, COLOR_GREEN);
+    init_pair(4, COLOR_WHITE, COLOR_YELLOW);
+    init_pair(5, COLOR_WHITE, COLOR_MAGENTA);
+    init_pair(6, COLOR_WHITE, COLOR_CYAN);
+    init_pair(7, COLOR_BLUE, COLOR_WHITE);
+
     /* Création d'un segment d'un grille de 15x30 message */
     if((shmid = shmget((key_t)CLE_M, sizeof(grille), S_IRUSR | S_IWUSR | IPC_CREAT | IPC_EXCL)) == -1) {
         ncurses_stopper();
@@ -102,6 +111,7 @@ int main(int argc, char* argv[]) {
     timeout(500);
     while((k = getch()) != KEY_F(2)) {
         /* Affichage de la grille du segment de mémoire partagée */
+        printw("affichZone.");
         afficheZone(grille->grille, sous_fenetre, CLE_S);
     }
 
@@ -131,6 +141,8 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "Erreur lors de la suppresion du tableau de sémaphores ");
         exit(EXIT_FAILURE);
     }
+
+    free(grille);
 
     return EXIT_SUCCESS;
 }
