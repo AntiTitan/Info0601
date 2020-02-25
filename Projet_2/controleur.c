@@ -71,7 +71,7 @@ int main (int argc, char * argv []){
     supprimerFile(msqid);
     supprimerMemoire(shmid);
     supprimerSemaphores(semid);
-
+    free(carte);
 /*arrêt prgm*/
 
 }
