@@ -238,9 +238,12 @@ int main(int argc, char* argv[]) {
 
     /* Détachement du segment de mémoire partagée */
     if(shmdt(grille) == -1) {
-        perror("Erreur lors du détachement ");
+        perror("Erreur lors du détachement \n");
         exit(EXIT_FAILURE);
     }
+    printf("détachement du segment de mémoire\n");
+
+    free(grille);
 
     return EXIT_SUCCESS;
 }
