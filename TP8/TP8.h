@@ -1,9 +1,18 @@
 #ifndef _TP1_
 #define _TP1_
 
+#include <stdio.h>      /* Pour printf, perror */
 #include <stdlib.h>     /* Pour exit, EXIT_SUCCESS, EXIT_FAILURE */
 #include <ncurses.h>    /* Pour printw, attron, attroff, COLOR_PAIR, getch */
 #include <sys/sem.h>    /* Pour semget, semctl, semop */
+#include <time.h>
+#include <sys/types.h>
+#include <sys/shm.h>    /* Pour shmget, shmat, shmdt */
+#include <errno.h>      /* Pour errno */
+#include <sys/stat.h>   /* Pour S_IRUSR, S_IWUSR */
+#include <unistd.h>
+#include <time.h>
+#include <signal.h>
 
 #include "ncurses.h"
 

@@ -1,7 +1,25 @@
-#include "f_voitures.h"
+#include "fonctions.h"
+int stopVoiture=0;
+void handler_Voiture(int signal){
+    if(signal == SIGINT){
+        stopVoiture =1;
+    }
+}
 
 int main(int argc, char * argv []){
-
+    struct sigaction action;
+    
+    /* Positionnement du gestionnaire pour SIGINT */
+    action.sa_handler = handler_Voiture;
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = 0;
+    printf("pid voiture : %d\n",getpid());
+    while(!stopVoiture){
+        if(sigaction(SIGINT, &action, NULL) == -1) {
+            perror("Erreur lors du positionnement ");
+            exit(EXIT_FAILURE);
+        }
+    }
     /*Verification des arguments
     clé file messages
     rapidité message -> servira au timeout de ncurses
@@ -19,5 +37,6 @@ int main(int argc, char * argv []){
     */
 
     /*arret sur reception SIGINT*/
+    return EXIT_SUCCESS;
 
 }

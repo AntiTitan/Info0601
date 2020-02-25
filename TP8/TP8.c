@@ -1,5 +1,32 @@
-#include <time.h>
 #include "TP8.h"
+
+int signal_co =0,signel_cli=0;
+
+/**
+ * Attend la reception d'un signal SIGINT pour le coordinateur.
+ * @param win la fenetre dans laquelle on veut afficher le message
+ * @param c le message que l'on veut afficher
+ * @return void
+ */
+/*void handler_co(int signum) {
+    if(signum == SIGINT) {
+        kill(pid client, SIGINT);
+        signal_co =1;
+    }
+}*/
+
+/**
+ * Attend la reception d'un signal SIGINT pour le client.
+ * @param win la fenetre dans laquelle on veut afficher le message
+ * @param c le message que l'on veut afficher
+ * @return void
+ * marche pas, faut le faire pour chaque client (tableau partagé pour arrêter)
+ */
+/*void handler_cli(int signum) {
+    if(signum == SIGINT) {
+        signal_cli =1;
+    }
+}*/
 
 /**
  * Affiche la chaine dans la fenetre.
@@ -42,7 +69,6 @@ void Peux(int sem, int CLE) {
         fprintf(stderr, "Erreur lors de la récupération du tableau de sémaphores ");
         exit(EXIT_FAILURE);
     }
-    
     /* Réalisation de P(Sxx) */
     op.sem_num = sem;
     op.sem_op = -1;
@@ -60,7 +86,7 @@ void Peux(int sem, int CLE) {
  * @param CLE   la cle IPC du tableau de semaphores
  * @return void
  */
-void Vas(int sem, int CLE) {
+void Vas(int sem, int CLE ) {
     struct sembuf op;
     int semid;
 

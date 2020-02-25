@@ -24,7 +24,7 @@ OBJETS_O = $(OBJETS) $(EXEC_O)
 #
 #CLE_MSG = 1056
 CC = gcc
-CCFLAGS = -Wall -O3 -Werror -ansi -pedantic -g #-D CLE=$(CLE_MSG)
+CCFLAGS = -Wall -O3 -Werror -ansi -pedantic -g -D_POSIX_C_SOURCE#-D CLE=$(CLE_MSG)
 CCLIBS = 
 
 #
@@ -86,8 +86,7 @@ archive: clean
 
 # DEPENDANCES
 ncurses.o:ncurses.c ncurses.h
-f_controleur.o : struct.h ncurses.h f_controleur.h f_controleur.c
-f_voitures.o : struct.h ncurses.h f_voitures.h f_voitures.c
-voiture.o : struct.h ncurses.h f_voitures.h voiture.c
-controleur.o : struct.h ncurses.h f_controleur.h controleur.c
+fonctions.o : struct.h ncurses.h fonctions.h fonctions.c
+voiture.o : struct.h ncurses.h fonctions.h voiture.c
+controleur.o : struct.h ncurses.h fonctions.h controleur.c
 
