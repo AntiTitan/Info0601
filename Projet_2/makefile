@@ -86,7 +86,8 @@ archive: clean
 
 # DEPENDANCES
 ncurses.o:ncurses.c ncurses.h
-fonctions.o : struct.h ncurses.h fonctions.h fonctions.c
-voiture.o : struct.h ncurses.h fonctions.h voiture.c
-controleur.o : struct.h ncurses.h fonctions.h controleur.c
+f_voiture.o:ncurses.h struct.h f_voiture.h f_voiture.c
+f_controleur.o:ncurses.h struct.h f_controleur.h f_controleur.c
+voiture.o : struct.h ncurses.h f_voiture.h voiture.c
+controleur.o : struct.h ncurses.h f_controleur.h controleur.c
 

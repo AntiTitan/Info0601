@@ -28,7 +28,7 @@ int creerMemoire(int CLE_M, int size) {
     return shmid;
 }
 
-void creerSemaphores(int CLE_S) {
+int creerSemaphores(int CLE_S) {
     int semid;
 
     if((semid = semget((key_t)CLE_S, NBSEM, S_IRUSR | S_IWUSR | IPC_CREAT | IPC_EXCL)) == -1) {
@@ -69,4 +69,28 @@ void supprimerSemaphores(int semid) {
 
     printf("Tableau de sémaphores supprimé.\n");
     return EXIT_SUCCESS;
+}
+
+int ouvrir_fichier(char* nomfich){
+    return(open(nomfich,O_RDWR | O_CREAT,00777));
+}
+
+int lire_fichier(int fic,unsigned char chaine [][NB_C],char * nom){
+    int ret,i;
+    char name [20];
+    if((ret=read(fic,name,sizeof(char)*(strlen(nom))))!=sizeof(char)*strlen(nom)){
+        fprintf(stderr, "Error read size: ");
+        return ret;
+    }
+    for(i=0;i<NB_L;i++){
+        if((ret=read(fic,chaine[i],sizeof(unsigned char)*(NB_C)))!=sizeof(unsigned char)*(NB_C)){
+            fprintf(stderr, "Error read size: ");
+            return ret;
+        }
+    }
+    return ret;
+
+}
+int fermer_fichier(int fic){
+    return(close(fic) == -1);
 }

@@ -118,11 +118,7 @@ int main(int argc, char* argv[]) {
     timeout(500);
     while((k = getch()) != KEY_F(2)) {
         /* Affichage de la grille du segment de mémoire partagée */
-<<<<<<< HEAD
-        afficheMsgFen(info,"  I");
-=======
         printw("affichZone.");
->>>>>>> 872c17228e7244fba6f2726873156e2f712c542b
         afficheZone(grille->grille, sous_fenetre, CLE_S);
         
     }
