@@ -1,7 +1,6 @@
 #ifndef STRUCT_H
 #define STRUCT_H
 
-#define _XOPEN_SOURCE
 #include "ncurses.h"
 #include <string.h>
 #include <stdlib.h>     /* Pour exit, EXIT_FAILURE, EXIT_SUCCESS */

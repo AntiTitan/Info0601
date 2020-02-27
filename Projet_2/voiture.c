@@ -1,4 +1,4 @@
-#include "f_voiture.h"
+#include "fvoiture.h"
 
 #define HAUT 1
 #define DROITE 2
@@ -16,7 +16,6 @@ int main(int argc, char * argv []){
     struct sigaction action;
     int CLE_F,CLE_M,CLE_S,rapidite,numVoiture;
     int msqid,semid, shmid, i, d, posx, posy, cpt;
-    pid_t voitures [MAX_VOITURE];
     info_t *map;
     r_config_t requete_r;
     e_config_t requete_e;
@@ -68,10 +67,15 @@ int main(int argc, char * argv []){
     CLE_S = requete_e.cle_sema;
 
     /*Recupération segment mémoire*/
-    shmid = recupererMemoire;
+    shmid = recupererMemoire(CLE_M);
     
     /* Récupération du tableau de sémaphores */
-    semid = recupererSemaphores;
+    semid = recupererSemaphores(CLE_S);
+
+
+
+    printf("%d",semid);
+        printf("%d",rapidite);
 
     /* Attachement de la map au segment de mémoire partagée */
     if((map = shmat(shmid, NULL, 0)) == (void*)-1) {
@@ -108,6 +112,8 @@ int main(int argc, char * argv []){
             -> met à jour sa position sur la carte (choisi sa direction ou garde sa précédente s'il n'y a pas d'obstacle)
             -> envoie message au controlleur pour indiquer un changement
         */
+        /*P(Semaphore du seg memoire)*/
+
         /*deplacement*/
         posx = map->position[numVoiture-1][0];
         posy = map->position[numVoiture-1][1];
@@ -121,7 +127,7 @@ int main(int argc, char * argv []){
         while (cpt<4) {
             switch (d) {
                 case HAUT:/*hesitation entre && et || dans les if*/
-                    if(posx == 0 && map->carte->grille[posx-1][posy] != 1) {
+                    if(posx == 0 && map->carte.grille[posx-1][posy] != 1) {
                         d = (d+1)%4;
                         cpt++;
                     }
@@ -130,7 +136,7 @@ int main(int argc, char * argv []){
                     }
                     break;
                 case DROITE:
-                    if(posy == NB_C-1 && map->carte->grille[posx-1][posy] != 1) {
+                    if(posy == NB_C-1 && map->carte.grille[posx-1][posy] != 1) {
                         d = (d+1)%4;
                         cpt++;
                     }
@@ -139,7 +145,7 @@ int main(int argc, char * argv []){
                     }
                     break;
                 case BAS:
-                    if(posx == NB_L-1 && map->carte->grille[posx-1][posy] != 1) {
+                    if(posx == NB_L-1 && map->carte.grille[posx-1][posy] != 1) {
                         d = (d+1)%4;
                         cpt++;
                     }
@@ -148,7 +154,7 @@ int main(int argc, char * argv []){
                     }
                     break;
                 case GAUCHE:
-                    if(posy == 0 && map->carte->grille[posx-1][posy] != 1) {
+                    if(posy == 0 && map->carte.grille[posx-1][posy] != 1) {
                         d = (d+1)%4;
                         cpt++;
                     }
@@ -177,6 +183,7 @@ int main(int argc, char * argv []){
                     break;
             }
         }
+        /*V(Semaphore du seg memoire)*/
 
         /*avertissement changement position*/
         modification.voiture=numVoiture;

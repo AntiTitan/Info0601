@@ -1,4 +1,4 @@
-#include "f_controleur.h"
+#include "fcontroleur.h"
 
 int stopControleur=0;
 int arret[3];
@@ -28,7 +28,6 @@ int main (int argc, char * argv []){
     pid_t voitures [MAX_VOITURE];
     info_t *map;
     struct sigaction action;
-    info_t * map;
     r_config_t rconfig;
     e_config_t econfig;
     modif_carte_t modif;
@@ -50,7 +49,7 @@ int main (int argc, char * argv []){
     CLE_M = atoi(argv[4]);
     CLE_S = atoi(argv[5]);
     
-
+    printf("%d",nbV);
     /* Positionnement du gestionnaire pour SIGINT */
     action.sa_handler = handler_Controleur;
     sigemptyset(&action.sa_mask);
@@ -134,6 +133,7 @@ int main (int argc, char * argv []){
             if(trouve){
                 voitures[j]=rconfig.pid;
             }
+            
             /*Envoi clé à la voiture*/
             econfig.type=TYPE_ENVOI_CONFIG;
             econfig.cle_mem=CLE_M;
@@ -151,7 +151,10 @@ int main (int argc, char * argv []){
             /*Pas de messages TYPE_MODIF_CARTE*/ 
         }
         else{
-            /*Affichage de la simulation*/
+    /*Affichage de la simulation*/
+            /*P(Semaphore info)*/
+            /*affichage avec ncurses*/
+
         }
     }
 

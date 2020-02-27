@@ -2,7 +2,7 @@
 # CONFIGURATION GENERALE
 #
 
-EXEC = voiture controleur 
+EXEC = voiture controleur testCarte
 OBJETS = 
 NOM_PROJET = projet2
 
@@ -24,7 +24,7 @@ OBJETS_O = $(OBJETS) $(EXEC_O)
 #
 #CLE_MSG = 1056
 CC = gcc
-CCFLAGS = -Wall -O3 -Werror -ansi -pedantic -g -D_POSIX_C_SOURCE#-D CLE=$(CLE_MSG)
+CCFLAGS = -Wall -O3  -pedantic -g -D_POSIX_C_SOURCE#-D CLE=$(CLE_MSG)
 CCLIBS = 
 
 #
@@ -85,9 +85,10 @@ archive: clean
 	@echo "Termine."
 
 # DEPENDANCES
-ncurses.o:ncurses.c ncurses.h
-f_voiture.o:ncurses.h struct.h f_voiture.h f_voiture.c
-f_controleur.o:ncurses.h struct.h f_controleur.h f_controleur.c
-voiture.o : struct.h ncurses.h f_voiture.h voiture.c
-controleur.o : struct.h ncurses.h f_controleur.h controleur.c
+ncurses.o: ncurses.c ncurses.h
+fvoiture.o: ncurses.h struct.h fvoiture.h fvoiture.c
+fcontroleur.o: ncurses.h struct.h fcontroleur.h fcontroleur.c
+voiture.o : struct.h ncurses.h fvoiture.h voiture.c
+controleur.o : struct.h ncurses.h fcontroleur.h controleur.c
+testCarte.o: struct.h ncurses.h fcontroleur.h testCarte.c
 
