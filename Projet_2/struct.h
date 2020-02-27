@@ -14,7 +14,6 @@
 #include <sys/sem.h>    /* Pour semget, semctl */
 #include <sys/shm.h>    /* Pour shmget, shmctl */
 
-
 #define TYPE_RECUP_CONFIG 1
 #define TYPE_ENVOI_CONFIG 2
 #define TYPE_MODIF_CARTE  3
@@ -37,7 +36,7 @@ typedef struct {
     unsigned char grille[5][5];
 } grille5_t;
 
-typedef struct {
+typedef struct info {
     grille_t carte;
     int position [MAX_VOITURE][2];
 } info_t;

@@ -22,12 +22,16 @@ void handler_Controleur(int signal){
 int main (int argc, char * argv []){
     int nbV, CLE_F, CLE_M, CLE_S;
     int msqid, shmid, semid, size;
-    int i,fic;
+    int i,fic,j,trouve;
     unsigned short val[NBSEM];/*tableau d'initialisation des sem*/
     /*1 semaphore pour la carte entière ou un semaphore pour une zone 5x5 ?*/
     pid_t voitures [MAX_VOITURE];
     info_t *map;
     struct sigaction action;
+    info_t * map;
+    r_config_t rconfig;
+    e_config_t econfig;
+    modif_carte_t modif;
 
 /*Verification des arguments
     nom fichier carte
@@ -59,6 +63,9 @@ int main (int argc, char * argv []){
         exit(EXIT_FAILURE);
     }
     size = sizeof(map);
+    for(j=0;j<MAX_VOITURE;j++){
+        voitures[j]=0;
+    }
 
 /*Création outils IPC*/
 
@@ -87,7 +94,7 @@ int main (int argc, char * argv []){
         fprintf(stderr, "Erreur lors de l'ouverture du fichier carte ");
         exit(EXIT_FAILURE);
     }
-    if(lire_fichier(fic, map->carte->grille, argv[1])==-1){
+    if(lire_fichier(fic, map->carte.grille, argv[1])==-1){
         fprintf(stderr, "Erreur lors de la lecture du fichier carte ");
         exit(EXIT_FAILURE);
     }
@@ -103,15 +110,53 @@ int main (int argc, char * argv []){
             exit(EXIT_FAILURE);
         }
         /*Mise en attente messages sur file*/
-
-        /*Mise à jour des infos suite à la reception d'un message*/
-            /*Mise à jour affichage (on gère ça à la fin) */
-        /*Reception message : gérér
-            - cas où une voiture change sa position (TYPE 3)
-                -> modif info sur seg mem partagé
-            - cas où une voiture souhaite s'enregistrer (TYPE 1)
-                -> renvoi message TYPE 2 avec clé seg mem partagée et tab séma*/
+        /* Attente d'une requête d'enregistrement de voiture */
+        printf("Serveur : en attente d'une requête...\n");
+        if(msgrcv(msqid, &rconfig, sizeof(r_config_t) - sizeof(long), TYPE_RECUP_CONFIG, IPC_NOWAIT) == -1) {
+            if(errno!=ENOMSG){
+            perror("Erreur lors de la réception d'une requête ");
+            exit(EXIT_FAILURE);
+            }
+            /*Pas de messages TYPE_RECUP_CONFIG*/ 
+        }
+        else{
+            /*Enregistrement de la voiture*/
+            trouve =0;
+            j=0;
+            while(j<MAX_VOITURE && !trouve){
+                if(voitures[j]==0){
+                    j++;
+                }
+                else{
+                    trouve=1;
+                }
+            }
+            if(trouve){
+                voitures[j]=rconfig.pid;
+            }
+            /*Envoi clé à la voiture*/
+            econfig.type=TYPE_ENVOI_CONFIG;
+            econfig.cle_mem=CLE_M;
+            econfig.cle_sema=CLE_S;
+            if(msgsnd(msqid, &econfig, sizeof(e_config_t) - sizeof(long), 0) == -1) {
+                perror("Erreur lors de l'envoi de la requête ");
+                exit(EXIT_FAILURE);
+            }
+        }
+        if(msgrcv(msqid, &modif, sizeof(modif_carte_t) - sizeof(long), TYPE_MODIF_CARTE, IPC_NOWAIT) == -1) {
+            if(errno!=ENOMSG){
+            perror("Erreur lors de la réception d'une requête ");
+            exit(EXIT_FAILURE);
+            }
+            /*Pas de messages TYPE_MODIF_CARTE*/ 
+        }
+        else{
+            /*Affichage de la simulation*/
+        }
     }
+
+
+    
 /*suppression outils IPC */
 
     supprimerFile(msqid);

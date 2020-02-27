@@ -3,7 +3,9 @@
 
 #include "struct.h"
 
-void handler_Voiture(int signal);
+int recupFile(int msqid);
+int recupMemoire(int CLE_Me);
+int recupSemaphores(int semid);
 
 int alea(int a, int b);
 int recupererFile(int CLE_F);
