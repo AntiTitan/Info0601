@@ -11,7 +11,7 @@
 #include <sys/msg.h>    /* Pour msgget, msgsnd, msgrcv */
 #include <errno.h>      /* Pour errno */
 #include <sys/stat.h>   /* Pour S_IRUSR, S_IWUSR */
-
+#include <errno.h>
 #include "structures.h"
 
 int main() {
@@ -30,9 +30,12 @@ int main() {
 
   /* Attente d'une requête */
   printf("Serveur : en attente d'une requête...\n");
-  if(msgrcv(msqid, &requete, sizeof(requete_t) - sizeof(long), TYPE_REQUETE, 0) == -1) {
-    perror("Erreur lors de la réception d'une requête ");
-    exit(EXIT_FAILURE);
+  if(msgrcv(msqid, &requete, sizeof(requete_t) - sizeof(long), TYPE_REQUETE, IPC_NOWAIT) == -1) {
+    if(errno!=ENOMSG){
+      perror("Erreur lors de la réception d'une requête ");
+      exit(EXIT_FAILURE);
+    }
+    printf("Pas de messages\n"); 
   }
 
   printf("Serveur : requête reçue (%d, %d)\n", requete.valeur1, requete.valeur2);

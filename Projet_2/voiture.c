@@ -34,7 +34,7 @@ int main(int argc, char * argv []){
     
 /*récup file message -> vérifie si elle eput se connecter ou non*/
     /* Récupération de la file */
-    if((msqid = msgget((key_t)CLE_F, 0)) == -1) {
+    if((msqid = recupFile(CLE_F)) == -1) {
         perror("Erreur lors de la récupération de la file ");
         exit(EXIT_FAILURE);
     }
@@ -62,17 +62,17 @@ int main(int argc, char * argv []){
     CLE_S=requete_e.cle_sema;
 
     /*Recupération segment mémoire*/
-    if((shmid = shmget((key_t)CLE_M, 0, 0)) == -1) {
+    if((shmid = recupMemoire(CLE_M)) == -1) {
         fprintf(stderr, "Erreur lors de la récupération du segment de mémoire ");
         exit(EXIT_FAILURE);
     }
     
     /* Récupération du tableau de sémaphores */
-    if((semid = semget((key_t)CLE_S, 0, 0)) == -1) {
+    if((semid = recupSemaphores(CLE_S)) == -1) {
         fprintf(stderr, "Erreur lors de la récupération du tableau de sémaphores ");
         exit(EXIT_FAILURE);
     }
-    /*cherche position libre dans liste voiture -> nevient la voiture i*/
+    /*cherche position libre dans liste voiture -> devient la voiture i*/
     /*Cherche une position où se placer avec mise à jour carte*/
 
     /*mise à jour position dans seg memoire*/

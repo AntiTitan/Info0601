@@ -23,3 +23,4 @@ int lire_fichier(int fic,unsigned char chaine [][NB_C],char * nom);
 int fermer_fichier(int fic);
 
 #endif
+
