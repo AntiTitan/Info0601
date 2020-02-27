@@ -9,7 +9,7 @@ void handler_Voiture(int signal){
 int main(int argc, char * argv []){
     struct sigaction action;
     int CLE_F,CLE_M,CLE_S,rapidite,numVoiture;
-    int msqid,semid,segid;
+    int msqid,semid,segid, shmid;
     r_config_t requete_r;
     e_config_t requete_e;
     modif_carte_t modification;
@@ -44,7 +44,7 @@ int main(int argc, char * argv []){
 */
     /* Envoi d'une requête */
     
-    requete_r.vpid = getpid();
+    requete_r.pid = getpid();
 
     if(msgsnd(msqid, &requete_r, sizeof(r_config_t) - sizeof(long), 0) == -1) {
         perror("Erreur lors de l'envoi de la requête ");

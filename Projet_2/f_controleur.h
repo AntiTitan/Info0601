@@ -1,7 +1,12 @@
 #ifndef F_CONTROLEUR_H
 #define F_CONTROLEUR_H
 
+#define _POSIX_C_SOURCE 199309L
 
+#include <signal.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <fcntl.h>
 #include "ncurses.h"
 #include "struct.h"
 

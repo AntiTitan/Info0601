@@ -87,7 +87,7 @@ int main (int argc, char * argv []){
         fprintf(stderr, "Erreur lors de l'ouverture du fichier carte ");
         exit(EXIT_FAILURE);
     }
-    if(lire_fichier(fic,map->carte->grille,argv[1])==-1){
+    if(lire_fichier(fic, map->carte->grille, argv[1])==-1){
         fprintf(stderr, "Erreur lors de la lecture du fichier carte ");
         exit(EXIT_FAILURE);
     }
