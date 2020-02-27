@@ -1,5 +1,15 @@
 #include "f_voiture.h"
 
+/**
+ * Génère un entier aléatoire dans un intervalle [a, b].
+ * @param a la borne minimale
+ * @param b la borne maximale
+ * @return l'entier aléatoire
+ */
+int alea(int a, int b) {
+  return rand() % (b - a + 1) + a;
+}
+
 int recupererFile(int CLE_F) {
     int msqid;
     if((msqid = msgget((key_t)CLE_F, 0)) == -1) {

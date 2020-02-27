@@ -19,6 +19,9 @@
 #define TYPE_ENVOI_CONFIG 2
 #define TYPE_MODIF_CARTE  3
 
+#define VIDE 0
+#define ROUTE 1
+
 #define MAX_VOITURE       10
 
 #define NB_C    30      /* Nombre de colonnes matrice*/

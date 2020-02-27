@@ -1,5 +1,10 @@
 #include "f_voiture.h"
 
+#define HAUT 1
+#define DROITE 2
+#define BAS 3
+#define GAUCHE 4
+
 int stopVoiture=0;
 void handler_Voiture(int signal){
     if(signal == SIGINT){
@@ -10,7 +15,9 @@ void handler_Voiture(int signal){
 int main(int argc, char * argv []){
     struct sigaction action;
     int CLE_F,CLE_M,CLE_S,rapidite,numVoiture;
-    int msqid,semid, shmid;
+    int msqid,semid, shmid, i, d, posx, posy, cpt;
+    pid_t voitures [MAX_VOITURE];
+    info_t *map;
     r_config_t requete_r;
     e_config_t requete_e;
     modif_carte_t modification;
@@ -66,9 +73,26 @@ int main(int argc, char * argv []){
     /* Récupération du tableau de sémaphores */
     semid = recupererSemaphores;
 
-    /*cherche position libre dans liste voiture -> devient la voiture i*/
-    /*Cherche une position où se placer avec mise à jour carte*/
+    /* Attachement de la map au segment de mémoire partagée */
+    if((map = shmat(shmid, NULL, 0)) == (void*)-1) {
+        fprintf(stderr, "Erreur lors de l'attachement du segment de mémoire partagée ");
+        exit(EXIT_FAILURE);
+    }
+    printf("attachement au segment de memoire\n");
 
+    /*cherche position libre dans liste voiture -> devient la voiture i*/
+    i = 0;
+    while(map->position[i][0]!=-1 && i<MAX_VOITURE) {
+        i++;
+    }
+    numVoiture = i+1;
+
+    /*Cherche une position où se placer avec mise à jour carte*/
+    /*********************************************************A FAIRE**************************************************************/
+    /*dans la grille 0 vide, 1 route, 2 pour la voiture num 1, 3 pour la voiture num 2 ... */
+    /*choix aleatoire d'une case de la grille si c un obstacle la voiture peut s'y positionner sinon on retire une case au hasard*/
+    
+    /*init map->position[numVoiture-1][0] et map->position[numVoiture-1][1]*/
 
     /*mise à jour position dans seg memoire*/
 
@@ -80,11 +104,79 @@ int main(int argc, char * argv []){
             perror("Erreur lors du positionnement ");
             exit(EXIT_FAILURE);
         }
-/*se déplace régulièrement 
-    -> met à jour sa position sur la carte (choisi sa direction ou garde sa précédente s'il n'y a pas d'obstacle)
-    -> envoie message au controlleur pour indiquer un changement
-*/
+        /*se déplace régulièrement 
+            -> met à jour sa position sur la carte (choisi sa direction ou garde sa précédente s'il n'y a pas d'obstacle)
+            -> envoie message au controlleur pour indiquer un changement
+        */
         /*deplacement*/
+        posx = map->position[numVoiture-1][0];
+        posy = map->position[numVoiture-1][1];
+        d = alea(1, 4);
+        cpt = 0;
+
+        /*si la voiture est sur la premiere/derniere ligne/colonne (certaine(s) direction(s) impossible(s)) ou s'il n'y a pas 
+          de route dans la direction choisie ou s'il y a deja une voiture, on essaye la direction suivante si apres avoir tente
+          toutes les directions aucune n'est possible, on ne bouge bas
+        */
+        while (cpt<4) {
+            switch (d) {
+                case HAUT:/*hesitation entre && et || dans les if*/
+                    if(posx == 0 && map->carte->grille[posx-1][posy] != 1) {
+                        d = (d+1)%4;
+                        cpt++;
+                    }
+                    else {
+                        cpt = 10;
+                    }
+                    break;
+                case DROITE:
+                    if(posy == NB_C-1 && map->carte->grille[posx-1][posy] != 1) {
+                        d = (d+1)%4;
+                        cpt++;
+                    }
+                    else {
+                        cpt = 10;
+                    }
+                    break;
+                case BAS:
+                    if(posx == NB_L-1 && map->carte->grille[posx-1][posy] != 1) {
+                        d = (d+1)%4;
+                        cpt++;
+                    }
+                    else {
+                        cpt = 10;
+                    }
+                    break;
+                case GAUCHE:
+                    if(posy == 0 && map->carte->grille[posx-1][posy] != 1) {
+                        d = (d+1)%4;
+                        cpt++;
+                    }
+                    else {
+                        cpt = 10;
+                    }
+                    break;
+            }
+        }
+        if (cpt != 10) {
+            /*pas de deplacement*/
+        }
+        else {
+            switch (d) {
+                case HAUT:
+                    /*la voiture se deplace sur la case du haut*/
+                    break;
+                case DROITE:
+                    /*la voiture se deplace sur la case de droite*/
+                    break;
+                case BAS:
+                    /*la voiture se deplace sur la case du bas*/
+                    break;
+                case GAUCHE:
+                    /*la voiture se deplace sur la case de gauche*/
+                    break;
+            }
+        }
 
         /*avertissement changement position*/
         modification.voiture=numVoiture;
