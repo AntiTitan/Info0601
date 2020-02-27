@@ -10,9 +10,9 @@
 #include "ncurses.h"
 #include "struct.h"
 
-int creerFile(int msqid);
-int creerMemoire(int shmid,int size);
-int creerSemaphores(int semid);
+int creerFile(int);
+int creerMemoire(int,int);
+int creerSemaphores(int);
 
 void supprimerFile(int msqid);
 void supprimerMemoire(int shmid);

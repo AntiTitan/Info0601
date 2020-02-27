@@ -11,3 +11,8 @@ un semaphore pour chaque zone de 5x5
 -> faut trouver un moyen de free map lors de l'arrêt (optionnel)
 -> faut pas init les semaphores à 0 ?
 -> tester la suppr des outils IPC sur SIGINT
+Antinéa 27/02 - 15h
+ ** J'ai enlevé les erreurs présentes dans les différents fichiers du projet2
+-> Pour les sémaphores c bien init à 1 puisque c'est une exclusion mutuelle 
+ tu ne peux pas te deplacer sur une case qui est bloquée puisque une autre 
+ voiture pourrai s'y déplacer.

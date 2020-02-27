@@ -26,8 +26,8 @@ int main (int argc, char * argv []){
     unsigned short val[NBSEM];/*tableau d'initialisation des sem*/
     /*1 semaphore pour la carte entière ou un semaphore pour une zone 5x5 ?*/
     pid_t voitures [MAX_VOITURE];
+    info_t *map;
     struct sigaction action;
-    info_t * map;
 
 /*Verification des arguments
     nom fichier carte

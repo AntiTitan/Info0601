@@ -5,4 +5,8 @@
 
 void handler_Voiture(int signal);
 
+int recupererFile(int CLE_F);
+int recupererMemoire(int CLE_M);
+int recupererSemaphores(int CLE_S);
+
 #endif

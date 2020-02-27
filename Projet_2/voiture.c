@@ -1,4 +1,5 @@
 #include "f_voiture.h"
+
 int stopVoiture=0;
 void handler_Voiture(int signal){
     if(signal == SIGINT){
@@ -9,7 +10,7 @@ void handler_Voiture(int signal){
 int main(int argc, char * argv []){
     struct sigaction action;
     int CLE_F,CLE_M,CLE_S,rapidite,numVoiture;
-    int msqid,semid,segid, shmid;
+    int msqid,semid, shmid;
     r_config_t requete_r;
     e_config_t requete_e;
     modif_carte_t modification;
@@ -20,24 +21,22 @@ int main(int argc, char * argv []){
     action.sa_flags = 0;
     
     requete_r.type = TYPE_RECUP_CONFIG;
-    modification.type =TYPE_MODIF_CARTE;
+    modification.type = TYPE_MODIF_CARTE;
+
     /*Verification des arguments
     clé file messages
     rapidité message -> servira au timeout de ncurses
     */
     if (argc != 3) {
-        fprintf(stderr, "Nombre d'arguments incorrect:  ./controleur ficCartte nbMaxVoiture CLE_FIL CLE_MEM, CLE_SEM\n");
+        fprintf(stderr, "Nombre d'arguments incorrect:  ./voiture CLE\n");
         exit(EXIT_FAILURE);
     }
     CLE_F = atoi(argv[1]);
     rapidite = atoi(argv[2]);
     
-/*récup file message -> vérifie si elle eput se connecter ou non*/
+/*récup file message -> vérifie si elle peut se connecter ou non*/
     /* Récupération de la file */
-    if((msqid = msgget((key_t)CLE_F, 0)) == -1) {
-        perror("Erreur lors de la récupération de la file ");
-        exit(EXIT_FAILURE);
-    }
+    msqid = recupererFile(CLE_F);
 /*Si oui,   recup autres outils IPC (seg mem et tab sema)
             choisi une place où se mettre sur la carte
             met à jour la carte et sa position
@@ -58,22 +57,18 @@ int main(int argc, char * argv []){
         perror("Erreur lors de la réception de la réponse ");
         exit(EXIT_FAILURE);    
     }
-    CLE_M=requete_e.cle_mem;
-    CLE_S=requete_e.cle_sema;
+    CLE_M = requete_e.cle_mem;
+    CLE_S = requete_e.cle_sema;
 
     /*Recupération segment mémoire*/
-    if((shmid = shmget((key_t)CLE_M, 0, 0)) == -1) {
-        fprintf(stderr, "Erreur lors de la récupération du segment de mémoire ");
-        exit(EXIT_FAILURE);
-    }
+    shmid = recupererMemoire;
     
     /* Récupération du tableau de sémaphores */
-    if((semid = semget((key_t)CLE_S, 0, 0)) == -1) {
-        fprintf(stderr, "Erreur lors de la récupération du tableau de sémaphores ");
-        exit(EXIT_FAILURE);
-    }
-    /*cherche position libre dans liste voiture -> nevient la voiture i*/
+    semid = recupererSemaphores;
+
+    /*cherche position libre dans liste voiture -> devient la voiture i*/
     /*Cherche une position où se placer avec mise à jour carte*/
+
 
     /*mise à jour position dans seg memoire*/
 
