@@ -1,18 +1,29 @@
 #include "f_voiture.h"
 
-int recupFile(int CLE_F){
+int recupererFile(int CLE_F) {
     int msqid;
-    /* Récupération de la file */
-    msqid = msgget((key_t)CLE_F, 0);
+    if((msqid = msgget((key_t)CLE_F, 0)) == -1) {
+        perror("Erreur lors de la récupération de la file ");
+        exit(EXIT_FAILURE);
+    }
     return msqid;
 }
-int recupMemoire(int CLE_M){
+
+int recupererMemoire(int CLE_M) {
     int shmid;
-    shmid = shmget((key_t)CLE_M, 0, 0);
+    if((shmid = shmget((key_t)CLE_M, 0, 0)) == -1) {
+        fprintf(stderr, "Erreur lors de la récupération du segment de mémoire ");
+        exit(EXIT_FAILURE);
+    }
     return shmid;
 }
-int recupSemaphores(int CLE_S){
+
+int recupererSemaphores(int CLE_S) {
     int semid;
-    semid = semget((key_t)CLE_S, 0, 0);
+    if((semid = semget((key_t)CLE_S, 0, 0)) == -1) {
+        fprintf(stderr, "Erreur lors de la récupération du tableau de sémaphores ");
+        exit(EXIT_FAILURE);
+    }
     return semid;
 }
+

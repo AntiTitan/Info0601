@@ -7,4 +7,8 @@ int recupFile(int msqid);
 int recupMemoire(int CLE_Me);
 int recupSemaphores(int semid);
 
+int recupererFile(int CLE_F);
+int recupererMemoire(int CLE_M);
+int recupererSemaphores(int CLE_S);
+
 #endif
