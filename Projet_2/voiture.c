@@ -84,12 +84,17 @@ int main(int argc, char * argv []){
     printf("attachement au segment de memoire\n");
 
     /*cherche position libre dans liste voiture -> devient la voiture i*/
+    Peux(0,CLE_S); /*C'est 0 ou 1 ou autre chose ???*/
     i = 0;
     while(map->position[i][0]!=-1 && i<MAX_VOITURE) {
         i++;
     }
+    if(i==MAX_VOITURE){
+        fprintf(stderr,"Il y a dejà trop de voitures\n");
+        exit(EXIT_FAILURE);
+    }
     numVoiture = i+1;
-
+    Vas(0,CLE_S);
     /*Cherche une position où se placer avec mise à jour carte*/
     /*********************************************************A FAIRE**************************************************************/
     /*dans la grille 0 vide, 1 route, 2 pour la voiture num 1, 3 pour la voiture num 2 ... */
@@ -112,7 +117,7 @@ int main(int argc, char * argv []){
             -> envoie message au controlleur pour indiquer un changement
         */
         /*P(Semaphore du seg memoire)*/
-
+        Peux(0,CLE_S);
         /*deplacement*/
         posx = map->position[numVoiture-1][0];
         posy = map->position[numVoiture-1][1];
@@ -184,7 +189,7 @@ int main(int argc, char * argv []){
             }
         }
         /*V(Semaphore du seg memoire)*/
-
+        Vas(0,CLE_S);
         /*avertissement changement position*/
         modification.voiture=numVoiture;
 

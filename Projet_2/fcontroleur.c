@@ -100,3 +100,56 @@ int lire_fichier(int fic,unsigned char chaine [][NB_C],char * nom){
 int fermer_fichier(int fic){
     return(close(fic) == -1);
 }
+
+/**
+ * Affiche la chaine dans la fenetre.
+ * @param win la fenetre dans laquelle on veut afficher le message
+ * @param c le message que l'on veut afficher
+ * @return void
+ */
+void afficheMsgFen(WINDOW* win,char* c) {
+    wprintw(win, c);
+    wrefresh(win);
+}
+
+void afficheZone(unsigned char mat[][NB_C], WINDOW* win){
+    int i,j,val;
+    
+    for(i=0;i<NB_L;i++) {
+        for(j=0;j<NB_C;j++) {
+            val = mat[i][j];
+            
+            switch (val) {
+                case VIDE:
+                    wattron(win, COLOR_PAIR(1));
+                    afficheMsgFen(win," ");
+                    wattroff(win, COLOR_PAIR(1));
+                    break;
+                case ROUTE:
+                    wattron(win, COLOR_PAIR(2));
+                    afficheMsgFen(win," ");
+                    wattroff(win, COLOR_PAIR(2));
+                    break;
+                default:
+                    wattron(win, COLOR_PAIR(3));
+                    afficheMsgFen(win," ");
+                    wattroff(win, COLOR_PAIR(3));
+                    break;
+            }
+        }
+    }
+    wrefresh(win);
+}
+WINDOW* creerFenetre(int hauteur, int largeur, int posy, int posx) {
+    WINDOW* fenetre;
+    fenetre = newwin(hauteur, largeur, posy, posx);
+    box(fenetre,0,0);
+    return fenetre;
+}
+
+WINDOW* creerSousFenetre(int hauteur, int largeur, int posy, int posx, bool scroll, WINDOW* fenetre) {
+    WINDOW* sous_fenetre;
+    sous_fenetre = subwin(fenetre, hauteur,largeur, posy, posx);
+    if (scroll == TRUE) scrollok(sous_fenetre, TRUE);
+    return sous_fenetre;
+}
