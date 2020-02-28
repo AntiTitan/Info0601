@@ -117,7 +117,6 @@ int main (int argc, char * argv []){
         fprintf(stderr, "Erreur lors de la lecture du fichier carte ");
         exit(EXIT_FAILURE);
     }
-    /*Attachement du segment memoire partagée*/
 
     /* Attachement de la map au segment de mémoire partagée */
     if((map = shmat(shmid, NULL, 0)) == (void*)-1) {
