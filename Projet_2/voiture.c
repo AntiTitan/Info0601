@@ -128,7 +128,7 @@ int main(int argc, char * argv []){
         while (cpt<4) {
             switch (d) {
                 case HAUT:/*hesitation entre && et || dans les if*/
-                    if(posx == 0 && map->carte.grille[posx-1][posy] != 1) {
+                    if(posx == 0 && map->carte.grille[posx-1][posy] != ROUTE) {
                         d = (d+1)%4;
                         cpt++;
                     }
@@ -137,7 +137,7 @@ int main(int argc, char * argv []){
                     }
                     break;
                 case DROITE:
-                    if(posy == NB_C-1 && map->carte.grille[posx-1][posy] != 1) {
+                    if(posy == NB_C-1 && map->carte.grille[posx-1][posy] != ROUTE) {
                         d = (d+1)%4;
                         cpt++;
                     }
@@ -146,7 +146,7 @@ int main(int argc, char * argv []){
                     }
                     break;
                 case BAS:
-                    if(posx == NB_L-1 && map->carte.grille[posx-1][posy] != 1) {
+                    if(posx == NB_L-1 && map->carte.grille[posx-1][posy] != ROUTE) {
                         d = (d+1)%4;
                         cpt++;
                     }
@@ -155,7 +155,7 @@ int main(int argc, char * argv []){
                     }
                     break;
                 case GAUCHE:
-                    if(posy == 0 && map->carte.grille[posx-1][posy] != 1) {
+                    if(posy == 0 && map->carte.grille[posx-1][posy] != ROUTE) {
                         d = (d+1)%4;
                         cpt++;
                     }
@@ -167,6 +167,7 @@ int main(int argc, char * argv []){
         }
         if (cpt != 10) {
             /*pas de deplacement*/
+            printf("impossible de se deplacer\n");
         }
         else {
             switch (d) {
