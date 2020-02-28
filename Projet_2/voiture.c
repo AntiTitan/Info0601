@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE
 #include "fvoiture.h"
 
 #define HAUT 1

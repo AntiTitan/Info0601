@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE
 #include "fcontroleur.h"
 
 int stopControleur=0;
@@ -35,7 +36,7 @@ int main (int argc, char * argv []){
         fprintf(stderr, "Nombre d'arguments incorrect:  ./controleur ficCartte \nficCarte = lasvegas.bin | reims.bin | vide.bin\n");
         exit(EXIT_FAILURE);
     }
-    if ((map=malloc(sizeof(info_t)))==-1){
+    if ((map=malloc(sizeof(info_t)))==NULL){
         fprintf(stderr, "Erreur lors de l'allocation memoire ");
         exit(EXIT_FAILURE);
     }
@@ -50,7 +51,7 @@ int main (int argc, char * argv []){
         exit(EXIT_FAILURE);
     }
     /*Attachement du segment memoire partagée*/
-    printf("carte %s",argv[1]);
+    printf("carte %s\n",argv[1]);
     for(i=0;i<NB_L;i++){
         for(j=0;j<NB_C;j++){
             printf("%d ",map->carte.grille[i][j]);

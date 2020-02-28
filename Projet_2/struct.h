@@ -1,5 +1,7 @@
+#define _XOPEN_SOURCE
 #ifndef STRUCT_H
 #define STRUCT_H
+
 
 #include "ncurses.h"
 #include <string.h>

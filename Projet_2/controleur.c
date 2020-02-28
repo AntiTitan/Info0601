@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE
 #include "fcontroleur.h"
 
 int stopControleur=0;

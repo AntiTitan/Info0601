@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE
 #include "fcontroleur.h"
 
 int creerFile(int CLE_F) {
@@ -41,7 +42,7 @@ int creerSemaphores(int CLE_S) {
     return semid;
 }
 
-void supprimerFile(int msqid) {
+int supprimerFile(int msqid) {
     if(msgctl(msqid, IPC_RMID, 0) == -1) {
         fprintf(stderr, "Erreur lors de la suppression de la file ");
         exit(EXIT_FAILURE);
@@ -51,7 +52,7 @@ void supprimerFile(int msqid) {
     return EXIT_SUCCESS;
 }
 
-void supprimerMemoire(int shmid) {
+int supprimerMemoire(int shmid) {
     if(shmctl(shmid, IPC_RMID, 0) == -1) {
         fprintf(stderr, "Erreur lors de la suppression du segment de mémoire partagée ");
         exit(EXIT_FAILURE);
@@ -61,7 +62,7 @@ void supprimerMemoire(int shmid) {
     return EXIT_SUCCESS;
 }
 
-void supprimerSemaphores(int semid) {
+int supprimerSemaphores(int semid) {
     if(semctl(semid, 0, IPC_RMID) == -1) {
         fprintf(stderr, "Erreur lors de la suppresion du tableau de sémaphores ");
         exit(EXIT_FAILURE);
@@ -77,8 +78,13 @@ int ouvrir_fichier(char* nomfich){
 
 int lire_fichier(int fic,unsigned char chaine [][NB_C],char * nom){
     int ret,i;
+    size_t taille;
     char name [20];
-    if((ret=read(fic,name,sizeof(char)*(strlen(nom))))!=sizeof(char)*strlen(nom)){
+    if((ret=read(fic,&taille,sizeof(size_t)))!=sizeof(size_t)){
+        fprintf(stderr, "Error read size: ");
+        return ret;
+    }
+    if((ret=read(fic,name,sizeof(char)*(taille)))!=sizeof(char)*taille){
         fprintf(stderr, "Error read size: ");
         return ret;
     }

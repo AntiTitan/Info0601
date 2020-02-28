@@ -12,9 +12,9 @@ int creerFile(int);
 int creerMemoire(int,int);
 int creerSemaphores(int);
 
-void supprimerFile(int msqid);
-void supprimerMemoire(int shmid);
-void supprimerSemaphores(int semid);
+int supprimerFile(int msqid);
+int supprimerMemoire(int shmid);
+int supprimerSemaphores(int semid);
 
 int ouvrir_fichier(char* nomfich);
 int lire_fichier(int fic,unsigned char chaine [][NB_C],char * nom);
