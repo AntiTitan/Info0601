@@ -94,6 +94,7 @@ int main(int argc, char * argv []){
     numVoiture = i+1;
     modification.voiture = numVoiture;
 
+    printf("position voiture libre trouvee\n");
     /*Cherche une position où se placer avec mise à jour carte*/
     /*********************************************************A FAIRE**************************************************************/
     /*dans la grille 0 vide, 1 route, 2 pour la voiture num 1, 3 pour la voiture num 2 ... */
@@ -115,11 +116,13 @@ int main(int argc, char * argv []){
         Vas(0,CLE_S);
     }
 
+    printf("emplacement libre trouve\n");
 
 
 
     /*arret sur reception SIGINT*/
     while(!stopVoiture){
+        printf("boucle while\n");
         if(sigaction(SIGINT, &action, NULL) == -1) {
             perror("Erreur lors du positionnement ");
             exit(EXIT_FAILURE);
