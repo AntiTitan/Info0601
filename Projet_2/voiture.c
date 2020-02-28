@@ -16,11 +16,22 @@ void handler_Voiture(int signal){
 int main(int argc, char * argv []){
     struct sigaction action;
     int CLE_F,CLE_M,CLE_S,rapidite,numVoiture;
-    int msqid,semid, shmid, i, d, posx, posy, cpt;
+    int msqid,semid, shmid, i, d, posx, posy, cpt, libre;
     info_t *map;
     r_config_t requete_r;
     e_config_t requete_e;
     modif_carte_t modification;
+
+    /*Verification des arguments
+    clé file messages
+    rapidité message -> servira au timeout de ncurses
+    */
+    if (argc != 3) {
+        fprintf(stderr, "Nombre d'arguments incorrect:  ./voiture CLE_FILE rapidite\n");
+        exit(EXIT_FAILURE);
+    }
+    CLE_F = atoi(argv[1]);
+    rapidite = atoi(argv[2]);
     
     /* Positionnement du gestionnaire pour SIGINT */
     action.sa_handler = handler_Voiture;
@@ -28,29 +39,17 @@ int main(int argc, char * argv []){
     action.sa_flags = 0;
     
     requete_r.type = TYPE_RECUP_CONFIG;
+    requete_r.pid = getpid();
     modification.type = TYPE_MODIF_CARTE;
-
-    /*Verification des arguments
-    clé file messages
-    rapidité message -> servira au timeout de ncurses
-    */
-    if (argc != 3) {
-        fprintf(stderr, "Nombre d'arguments incorrect:  ./voiture CLE_FILE\n");
-        exit(EXIT_FAILURE);
-    }
-    CLE_F = atoi(argv[1]);
-    rapidite = atoi(argv[2]);
     
 /*récup file message -> vérifie si elle peut se connecter ou non*/
-    /* Récupération de la file */
     msqid = recupererFile(CLE_F);
+
 /*Si oui,   recup autres outils IPC (seg mem et tab sema)
   choisi une place où se mettre sur la carte met à jour 
   la carte et sa position
 */
-    /* Envoi d'une requête */
-    
-    requete_r.pid = getpid();
+    /* Envoi requête pour recuperer les cles*/
 
     if(msgsnd(msqid, &requete_r, sizeof(r_config_t) - sizeof(long), 0) == -1) {
         perror("Erreur lors de l'envoi de la requête ");
@@ -67,14 +66,12 @@ int main(int argc, char * argv []){
     CLE_M = requete_e.cle_mem;
     CLE_S = requete_e.cle_sema;
 
-    /*Recupération segment mémoire*/
     shmid = recupererMemoire(CLE_M);
-    
-    /* Récupération du tableau de sémaphores */
     semid = recupererSemaphores(CLE_S);
-
+/*test d'affichage*/
     printf("%d",semid);
     printf("%d",rapidite);
+/******************/
 
     /* Attachement de la map au segment de mémoire partagée */
     if((map = shmat(shmid, NULL, 0)) == (void*)-1) {
@@ -84,25 +81,40 @@ int main(int argc, char * argv []){
     printf("attachement au segment de memoire\n");
 
     /*cherche position libre dans liste voiture -> devient la voiture i*/
-    Peux(0,CLE_S); /*C'est 0 ou 1 ou autre chose ???*/
+    Peux(0,CLE_S);
     i = 0;
     while(map->position[i][0]!=-1 && i<MAX_VOITURE) {
         i++;
     }
+    Vas(0,CLE_S);
     if(i==MAX_VOITURE){
         fprintf(stderr,"Il y a dejà trop de voitures\n");
         exit(EXIT_FAILURE);
     }
     numVoiture = i+1;
-    Vas(0,CLE_S);
+    modification->voiture = numVoiture;
+
     /*Cherche une position où se placer avec mise à jour carte*/
     /*********************************************************A FAIRE**************************************************************/
     /*dans la grille 0 vide, 1 route, 2 pour la voiture num 1, 3 pour la voiture num 2 ... */
     /*choix aleatoire d'une case de la grille si c un obstacle la voiture peut s'y positionner sinon on retire une case au hasard*/
-    
-    /*init map->position[numVoiture-1][0] et map->position[numVoiture-1][1]*/
+    libre = 0;
+    while(!libre) {
+        posx = alea(0, NB_L-1);
+        posy = alea(0, NB_C-1);
+        Peux(0, CLE_S);
+        if(map->carte.grille[posx][posy] == ROUTE) {
+        /*init map->position[numVoiture-1][0] et map->position[numVoiture-1][1]*/
+            /*mise à jour position dans seg memoire*/
+            map->position[numVoiture-1][0] = posx;
+            map->position[numVoiture-1][1] = posy;
+            /*mise à jour de la grille*/
+            map->carte.grille[posx][posy] = numVoiture;
+            libre = 1;
+        }
+        Vas(0,CLE_S);
+    }
 
-    /*mise à jour position dans seg memoire*/
 
 
 
@@ -136,69 +148,60 @@ int main(int argc, char * argv []){
                         cpt++;
                     }
                     else {
-                        cpt = 10;
+                        map->carte.grille[posx-1][posy] = numVoiture;
+                        map->carte.grille[posx][posy] = ROUTE;
                     }
                     break;
                 case DROITE:
-                    if(posy == NB_C-1 && map->carte.grille[posx-1][posy] != ROUTE) {
+                    if(posy == NB_C-1 && map->carte.grille[posx][posy+1] != ROUTE) {
                         d = (d+1)%4;
                         cpt++;
                     }
                     else {
-                        cpt = 10;
+                        map->carte.grille[posx][posy+1] = numVoiture;
+                        map->carte.grille[posx][posy] = ROUTE;
                     }
                     break;
                 case BAS:
-                    if(posx == NB_L-1 && map->carte.grille[posx-1][posy] != ROUTE) {
+                    if(posx == NB_L-1 && map->carte.grille[posx+1][posy] != ROUTE) {
                         d = (d+1)%4;
                         cpt++;
                     }
                     else {
-                        cpt = 10;
+                        map->carte.grille[posx+1][posy] = numVoiture;
+                        map->carte.grille[posx][posy] = ROUTE;
                     }
                     break;
                 case GAUCHE:
-                    if(posy == 0 && map->carte.grille[posx-1][posy] != ROUTE) {
+                    if(posy == 0 && map->carte.grille[posx][posy-1] != ROUTE) {
                         d = (d+1)%4;
                         cpt++;
                     }
                     else {
-                        cpt = 10;
+                        map->carte.grille[posx][posy-1] = numVoiture;
+                        map->carte.grille[posx][posy] = ROUTE;
                     }
                     break;
             }
         }
-        if (cpt != 10) {
+        if (cpt == 4) {
             /*pas de deplacement*/
             printf("impossible de se deplacer\n");
         }
         else {
-            switch (d) {
-                case HAUT:
-                    /*la voiture se deplace sur la case du haut*/
-                    break;
-                case DROITE:
-                    /*la voiture se deplace sur la case de droite*/
-                    break;
-                case BAS:
-                    /*la voiture se deplace sur la case du bas*/
-                    break;
-                case GAUCHE:
-                    /*la voiture se deplace sur la case de gauche*/
-                    break;
+            /*avertissement changement position*/
+            modification.voiture = numVoiture;
+
+            /*envoi message*/
+            if(msgsnd(msqid, &modification, sizeof(modif_carte_t) - sizeof(long), 0) == -1) {
+                perror("Erreur lors de l'envoi de la requête ");
+                exit(EXIT_FAILURE);
             }
+            printf("Voiture %d : envoi d'une requête de modif.\n",numVoiture);
+
         }
         /*V(Semaphore du seg memoire)*/
         Vas(0,CLE_S);
-        /*avertissement changement position*/
-        modification.voiture=numVoiture;
-
-        /*envoi message*/
-        if(msgsnd(msqid, &modification, sizeof(modif_carte_t) - sizeof(long), 0) == -1) {
-            perror("Erreur lors de l'envoi de la requête ");
-            exit(EXIT_FAILURE);
-        }
-        printf("Voiture %d : envoi d'une requête de modif.\n",numVoiture);
 
     }
     return EXIT_SUCCESS;

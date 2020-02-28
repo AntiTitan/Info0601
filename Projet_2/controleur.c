@@ -74,7 +74,7 @@ int main (int argc, char * argv []){
 
     if ((map = malloc(sizeof(info_t)))==NULL) {
         fprintf(stderr, "erreur malloc");
-         ncurses_stopper();
+        ncurses_stopper();
         exit(EXIT_FAILURE);
     }
     size = sizeof(map);
@@ -102,26 +102,27 @@ int main (int argc, char * argv []){
 
     /* Initialisation des sémaphores */
     if(semctl(semid, 0, SETALL, val) == -1) {
+        ncurses_stopper();
         fprintf(stderr, "Erreur lors de l'initialisation des sémaphores ");
-         ncurses_stopper();
         exit(EXIT_FAILURE);
     }
 /*Remplissage seg memoire*/
     /*Extraction info du fichier*/
     if((fic = ouvrir_fichier(argv[1]))==-1){
+        ncurses_stopper();
         fprintf(stderr, "Erreur lors de l'ouverture du fichier carte ");
-         ncurses_stopper();
         exit(EXIT_FAILURE);
     }
     if(lire_fichier(fic, map->carte.grille, argv[1])==-1){
+        ncurses_stopper();
         fprintf(stderr, "Erreur lors de la lecture du fichier carte ");
-         ncurses_stopper();
         exit(EXIT_FAILURE);
     }
     /*Attachement du segment memoire partagée*/
 
     /* Attachement de la map au segment de mémoire partagée */
     if((map = shmat(shmid, NULL, 0)) == (void*)-1) {
+        ncurses_stopper();
         fprintf(stderr, "Erreur lors de l'attachement du segment de mémoire partagée ");
         exit(EXIT_FAILURE);
     }
@@ -130,24 +131,26 @@ int main (int argc, char * argv []){
     /*Premier affichage simulation (on gère ça à la fin)*/
     /* Création de la fenêtre d'affichage*/
     fenetre = creerFenetre(HAUTEUR, LARGEUR, POSY, POSX);
-    sous_fen = creerSousFenetre(HAUTEUR - 2,LARGEUR - 2, POSY + 1, POSX + 1, FALSE, fenetre);
+    sous_fen = creerSousFenetre(HAUTEUR - 2, LARGEUR - 2, POSY + 1, POSX + 1, FALSE, fenetre);
 
     /* Definition de la palette */
     init_pair(1, COLOR_WHITE, COLOR_BLACK);
     init_pair(2, COLOR_WHITE, COLOR_RED);
     init_pair(3, COLOR_WHITE, COLOR_GREEN);
     init_pair(4, COLOR_BLUE, COLOR_WHITE);
-     /* Colore le fond de la fenêtre */
+
+    /* Colore le fond de la fenêtre */
     wbkgd(fenetre, COLOR_PAIR(4));
     wrefresh(fenetre);
     wbkgd(sous_fen, COLOR_PAIR(4));
     wrefresh(sous_fen);
+
 /*Arret sur SIGINT (ou utilisateur) -> arret de toutes les voitures avec SIGINT */
 /*Envoi SIGINT aux programmes voiture*/
     while(!stopControleur){
         if(sigaction(SIGINT, &action, NULL) == -1) {
+            ncurses_stopper();
             perror("Erreur lors du positionnement ");
-             ncurses_stopper();
             exit(EXIT_FAILURE);
         }
         /*Mise en attente messages sur file*/
@@ -155,7 +158,7 @@ int main (int argc, char * argv []){
         printf("Serveur : en attente d'une requête...\n");
         if(msgrcv(msqid, &rconfig, sizeof(r_config_t) - sizeof(long), TYPE_RECUP_CONFIG, IPC_NOWAIT) == -1) {
             if(errno!=ENOMSG){
-                 ncurses_stopper();
+                ncurses_stopper();
                 perror("Erreur lors de la réception d'une requête ");
                 exit(EXIT_FAILURE);
             }
@@ -181,22 +184,25 @@ int main (int argc, char * argv []){
             econfig.type=TYPE_ENVOI_CONFIG;
             econfig.cle_mem=CLE_M;
             econfig.cle_sema=CLE_S;
+
             if(msgsnd(msqid, &econfig, sizeof(e_config_t) - sizeof(long), 0) == -1) {
+                ncurses_stopper();
                 perror("Erreur lors de l'envoi de la requête ");
-                 ncurses_stopper();
                 exit(EXIT_FAILURE);
             }
         }
+
+        /* Attente d'une requête de modif de positionnement */
         if(msgrcv(msqid, &modif, sizeof(modif_carte_t) - sizeof(long), TYPE_MODIF_CARTE, IPC_NOWAIT) == -1) {
             if(errno!=ENOMSG){
-                 ncurses_stopper();
+                ncurses_stopper();
                 perror("Erreur lors de la réception d'une requête ");
                 exit(EXIT_FAILURE);
             }
             /*Pas de messages TYPE_MODIF_CARTE*/ 
         }
+        /*Affichage de la simulation*/
         else{
-    /*Affichage de la simulation*/
             /*P(Semaphore info)*/
             Peux(0,CLE_S);
             /*affichage avec ncurses*/
@@ -205,14 +211,14 @@ int main (int argc, char * argv []){
             Vas(0,CLE_S);
         }
     }
-     ncurses_stopper();
+    ncurses_stopper();
     
 /*suppression outils IPC */
-
     supprimerFile(msqid);
     supprimerMemoire(shmid);
     supprimerSemaphores(semid);
     free(map);
+    
 /*arrêt prgm*/
     return EXIT_SUCCESS;
 }
