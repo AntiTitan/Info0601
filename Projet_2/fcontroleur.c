@@ -163,14 +163,15 @@ void afficheZone(unsigned char mat[][NB_C], WINDOW* win,WINDOW * info){
             }
             else {
                 afficheMsgFen(info,"voiture\n");
+                wrefresh(info);
                 wattron(win, COLOR_PAIR(4));
                 afficheMsgFen(win,"v");
                 wattroff(win, COLOR_PAIR(4));
             }
-
         }
     }
     wrefresh(win);
+    
 }
 
 WINDOW* creerFenetre(int hauteur, int largeur, int posy, int posx) {

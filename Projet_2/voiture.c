@@ -37,7 +37,9 @@ int main(int argc, char * argv []){
     action.sa_handler = handler_Voiture;
     sigemptyset(&action.sa_mask);
     action.sa_flags = 0;
-    
+    if(rapidite>=5){
+        rapidite = 5;
+    }
     requete_r.type = TYPE_RECUP_CONFIG;
     requete_r.pid = getpid();
     modification.type = TYPE_MODIF_CARTE;
@@ -68,9 +70,6 @@ int main(int argc, char * argv []){
 
     shmid = recupererMemoire(CLE_M);
     semid = recupererSemaphores(CLE_S);
-/*test d'affichage*/
-    printf("semid %d\n",semid);
-    printf("rapidite %d\n",rapidite);
 /******************/
 
     /* Attachement de la map au segment de mémoire partagée */
@@ -92,8 +91,6 @@ int main(int argc, char * argv []){
         exit(EXIT_FAILURE);
     }
     numVoiture = i+2;
-    printf("moi je marche\n");
-    printf("je suis i :%d\n",i);
     
     modification.voiture = numVoiture;
 
@@ -221,7 +218,7 @@ int main(int argc, char * argv []){
         }
         /*V(Semaphore du seg memoire)*/
         Vas(0,CLE_S);
-        sleep(2);
+        sleep(rapidite);
     }
     return EXIT_SUCCESS;
 

@@ -1,0 +1,13 @@
+On compile le programme d'abbord : make
+On execute le controleur : ./controleur ficCartte nbMaxVoiture CLE_FIL CLE_MEM CLE_SEM
+avec en arguments :
+    ficCarte -> nom du fichier contenant la carte
+    nbMaxVoiture -> nombre maximum de voiture dans la simulation
+    CLE_FIL -> une clé pour la file de messages
+    CLE_MEM -> une clé pour le segment de mémoire partagée
+    CLE_SEM -> une clé pour le tableau de sémaphores
+
+Pour lancer une voiture, on execute : ./voiture CLE_FIL rapidite 
+avec en arguments :
+    CLE_FIL -> la clé de la file de messages
+    rapidite -> la rapidité de la voiture
