@@ -69,8 +69,8 @@ int main(int argc, char * argv []){
     shmid = recupererMemoire(CLE_M);
     semid = recupererSemaphores(CLE_S);
 /*test d'affichage*/
-    printf("%d\n",semid);
-    printf("%d\n",rapidite);
+    printf("semid %d\n",semid);
+    printf("rapidite %d\n",rapidite);
 /******************/
 
     /* Attachement de la map au segment de mémoire partagée */
@@ -117,6 +117,12 @@ int main(int argc, char * argv []){
         
     }
 
+    if(msgsnd(msqid, &modification, sizeof(modif_carte_t) - sizeof(long), 0) == -1) {
+        perror("Erreur lors de l'envoi de la requête ");
+        exit(EXIT_FAILURE);
+    }
+    printf("Voiture %d : envoi de la position de depart.\n",numVoiture);
+
     printf("emplacement libre trouve: x %d, y %d\n",posx,posy);
 
 
@@ -132,9 +138,7 @@ int main(int argc, char * argv []){
             -> envoie message au controlleur pour indiquer un changement
         */
         /*P(Semaphore du seg memoire)*/
-        printf("boucle while avant Peux\n");
         Peux(0,CLE_S);
-        printf("boucle while apres Peux\n");
         /*deplacement*/
         posx = map->position[numVoiture-1][0];
         posy = map->position[numVoiture-1][1];
