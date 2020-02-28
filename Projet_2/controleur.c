@@ -23,7 +23,7 @@ void handler_Controleur(int signal){
 int main (int argc, char * argv []){
     int nbV, CLE_F, CLE_M, CLE_S;
     int msqid, shmid, semid, size;
-    int i,fic,j,trouve;
+    int i,fic,j,trouve,COLS,LINES;
     unsigned short val[NBSEM];/*tableau d'initialisation des sem*/
     /*1 semaphore pour la carte entière ou un semaphore pour une zone 5x5 ?*/
     pid_t voitures [MAX_VOITURE];
@@ -32,7 +32,7 @@ int main (int argc, char * argv []){
     r_config_t rconfig;
     e_config_t econfig;
     modif_carte_t modif;
-
+    WINDOW * fenetre, *sous_fen;
 /*Verification des arguments
     nom fichier carte
     nb max de voitures
@@ -56,15 +56,32 @@ int main (int argc, char * argv []){
     sigemptyset(&action.sa_mask);
     action.sa_flags = 0;
 
+    /* Initialisation de ncurses */
+    ncurses_initialiser();
+    ncurses_souris();
+    ncurses_couleurs();
+
+    /* Vérification des dimensions du terminal */
+    if((COLS < POSX + LARGEUR) || (LINES < POSY + HAUTEUR)) {
+        ncurses_stopper();
+        fprintf(stderr, 
+            "Les dimensions du terminal sont insufisantes : l=%d,h=%d au lieu de l=%d,h=%d\n", 
+            COLS, LINES, POSX + LARGEUR, POSY + HAUTEUR);
+        exit(EXIT_FAILURE);
+    }
+
 /*Allocation de la structure partagee*/
 
     if ((map = malloc(sizeof(info_t)))==NULL) {
         fprintf(stderr, "erreur malloc");
+         ncurses_stopper();
         exit(EXIT_FAILURE);
     }
     size = sizeof(map);
     for(j=0;j<MAX_VOITURE;j++){
         voitures[j]=0;
+        map->position[j][0]=-1;
+        map->position[j][1]=-1;
     }
 
 /*Création outils IPC*/
@@ -86,27 +103,44 @@ int main (int argc, char * argv []){
     /* Initialisation des sémaphores */
     if(semctl(semid, 0, SETALL, val) == -1) {
         fprintf(stderr, "Erreur lors de l'initialisation des sémaphores ");
+         ncurses_stopper();
         exit(EXIT_FAILURE);
     }
 /*Remplissage seg memoire*/
     /*Extraction info du fichier*/
     if((fic = ouvrir_fichier(argv[1]))==-1){
         fprintf(stderr, "Erreur lors de l'ouverture du fichier carte ");
+         ncurses_stopper();
         exit(EXIT_FAILURE);
     }
     if(lire_fichier(fic, map->carte.grille, argv[1])==-1){
         fprintf(stderr, "Erreur lors de la lecture du fichier carte ");
+         ncurses_stopper();
         exit(EXIT_FAILURE);
     }
     /*Attachement du segment memoire partagée*/
 
     /*Premier affichage simulation (on gère ça à la fin)*/
+    /* Création de la fenêtre d'affichage*/
+    fenetre = creerFenetre(HAUTEUR, LARGEUR, POSY, POSX);
+    sous_fen = creerSousFenetre(HAUTEUR - 2,LARGEUR - 2, POSY + 1, POSX + 1, FALSE, fenetre);
 
+    /* Definition de la palette */
+    init_pair(1, COLOR_WHITE, COLOR_BLACK);
+    init_pair(2, COLOR_WHITE, COLOR_RED);
+    init_pair(3, COLOR_WHITE, COLOR_GREEN);
+    init_pair(4, COLOR_BLUE, COLOR_WHITE);
+     /* Colore le fond de la fenêtre */
+    wbkgd(fenetre, COLOR_PAIR(4));
+    wrefresh(fenetre);
+    wbkgd(sous_fen, COLOR_PAIR(4));
+    wrefresh(sous_fen);
 /*Arret sur SIGINT (ou utilisateur) -> arret de toutes les voitures avec SIGINT */
 /*Envoi SIGINT aux programmes voiture*/
     while(!stopControleur){
         if(sigaction(SIGINT, &action, NULL) == -1) {
             perror("Erreur lors du positionnement ");
+             ncurses_stopper();
             exit(EXIT_FAILURE);
         }
         /*Mise en attente messages sur file*/
@@ -114,8 +148,9 @@ int main (int argc, char * argv []){
         printf("Serveur : en attente d'une requête...\n");
         if(msgrcv(msqid, &rconfig, sizeof(r_config_t) - sizeof(long), TYPE_RECUP_CONFIG, IPC_NOWAIT) == -1) {
             if(errno!=ENOMSG){
-            perror("Erreur lors de la réception d'une requête ");
-            exit(EXIT_FAILURE);
+                 ncurses_stopper();
+                perror("Erreur lors de la réception d'une requête ");
+                exit(EXIT_FAILURE);
             }
             /*Pas de messages TYPE_RECUP_CONFIG*/ 
         }
@@ -141,25 +176,29 @@ int main (int argc, char * argv []){
             econfig.cle_sema=CLE_S;
             if(msgsnd(msqid, &econfig, sizeof(e_config_t) - sizeof(long), 0) == -1) {
                 perror("Erreur lors de l'envoi de la requête ");
+                 ncurses_stopper();
                 exit(EXIT_FAILURE);
             }
         }
         if(msgrcv(msqid, &modif, sizeof(modif_carte_t) - sizeof(long), TYPE_MODIF_CARTE, IPC_NOWAIT) == -1) {
             if(errno!=ENOMSG){
-            perror("Erreur lors de la réception d'une requête ");
-            exit(EXIT_FAILURE);
+                 ncurses_stopper();
+                perror("Erreur lors de la réception d'une requête ");
+                exit(EXIT_FAILURE);
             }
             /*Pas de messages TYPE_MODIF_CARTE*/ 
         }
         else{
     /*Affichage de la simulation*/
             /*P(Semaphore info)*/
+            Peux(0,CLE_S);
             /*affichage avec ncurses*/
-
+            afficheZone(map->carte.grille, sous_fen);
+            /*V(Semaphore info)*/
+            Vas(0,CLE_S);
         }
     }
-
-
+     ncurses_stopper();
     
 /*suppression outils IPC */
 

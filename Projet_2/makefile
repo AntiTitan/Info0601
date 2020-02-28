@@ -3,7 +3,7 @@
 #
 
 EXEC = voiture controleur testCarte
-OBJETS = ncurses.o fvoiture.o fcontroleur.o
+OBJETS = ncurses.o fvoiture.o fcontroleur.o struct.o
 NOM_PROJET = projet2
 
 #
@@ -86,6 +86,7 @@ archive: clean
 
 # DEPENDANCES
 ncurses.o: ncurses.c ncurses.h
+struct.o: struct.c struct.h
 fvoiture.o: ncurses.h struct.h fvoiture.h fvoiture.c
 fcontroleur.o: ncurses.h struct.h fcontroleur.h fcontroleur.c
 voiture.o : struct.h ncurses.h fvoiture.h voiture.c
