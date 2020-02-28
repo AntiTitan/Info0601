@@ -113,6 +113,12 @@ int main(int argc, char * argv []){
             map->carte.grille[posx][posy] = numVoiture;
             libre = 1;
         }
+        /*envoi message*/
+            if(msgsnd(msqid, &modification, sizeof(modif_carte_t) - sizeof(long), 0) == -1) {
+                perror("Erreur lors de l'envoi de la requête ");
+                exit(EXIT_FAILURE);
+            }
+            printf("Voiture %d : envoi d'une requête de modif.\n",numVoiture);
         Vas(0,CLE_S);
         
     }

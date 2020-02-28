@@ -38,7 +38,7 @@ int main (int argc, char * argv []){
     r_config_t rconfig;
     e_config_t econfig;
     modif_carte_t modif;
-    WINDOW * fenetre, *sous_fen;
+    WINDOW * fenetre, *sous_fen,*info;
 /*Verification des arguments
     nom fichier carte
     nb max de voitures
@@ -146,7 +146,7 @@ int main (int argc, char * argv []){
     /* Création de la fenêtre d'affichage*/
     fenetre = creerFenetre(HAUTEUR, LARGEUR, POSY, POSX);
     sous_fen = creerSousFenetre(HAUTEUR - 2, LARGEUR - 2, POSY + 1, POSX + 1, FALSE, fenetre);
-
+    info = creerFenetre(HAUTEUR,LARGEUR,POSY,POSX+LARGEUR);
     /* Definition de la palette */
     init_pair(1, COLOR_WHITE, COLOR_BLACK);
     init_pair(2, COLOR_WHITE, COLOR_RED);
@@ -158,6 +158,8 @@ int main (int argc, char * argv []){
     wrefresh(fenetre);
     wbkgd(sous_fen, COLOR_PAIR(4));
     wrefresh(sous_fen);
+    wbkgd(info, COLOR_PAIR(1));
+    wrefresh(info);
 
 /*Arret sur SIGINT (ou utilisateur) -> arret de toutes les voitures avec SIGINT */
 /*Envoi SIGINT aux programmes voiture*/
@@ -204,6 +206,7 @@ int main (int argc, char * argv []){
                 fprintf(stderr, "Erreur lors de l'envoi de la requête\n");
                 exit(EXIT_FAILURE);
             }
+            afficheMsgFen(info,"voiture ajoutée\n");
         }
 
         /* Attente d'une requête de modif de positionnement */
@@ -217,6 +220,7 @@ int main (int argc, char * argv []){
         }
         /*Affichage de la simulation*/
         else{
+            afficheMsgFen(info,"modif voiture\n");
             /*P(Semaphore info)*/
             Peux(0,CLE_S);
             /*affichage avec ncurses*/
@@ -224,16 +228,11 @@ int main (int argc, char * argv []){
             /*V(Semaphore info)*/
             Vas(0,CLE_S);
         }
-        /*P(Semaphore info)*/
-        Peux(0,CLE_S);
-        /*affichage avec ncurses*/
-        afficheZone(map->carte.grille, sous_fen);
-        /*V(Semaphore info)*/
-        Vas(0,CLE_S);
         sleep(1);
     }
     delwin(fenetre);
     delwin(sous_fen);
+    delwin(info);
     ncurses_stopper();
     
 /*suppression outils IPC */
