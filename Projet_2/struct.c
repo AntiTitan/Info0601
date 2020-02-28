@@ -14,7 +14,7 @@ void Peux(int sem, int CLE) {
     /* Récupération du tableau de sémaphores */
     if((semid = semget((key_t)CLE, 0, 0)) == -1) {
         ncurses_stopper();
-        fprintf(stderr, "Erreur lors de la récupération du tableau de sémaphores ");
+        fprintf(stderr, "Erreur lors de la récupération du tableau de sémaphores Peux\n");
         exit(EXIT_FAILURE);
     }
     /* Réalisation de P(Sxx) */
@@ -23,7 +23,7 @@ void Peux(int sem, int CLE) {
     op.sem_flg = 0;
     if(semop(semid, &op, 1) == -1) {
         ncurses_stopper();
-        fprintf(stderr, "Erreur lors de l'opération sur le sémaphore ");
+        fprintf(stderr, "Erreur lors de l'opération sur le sémaphore Peux\n");
         exit(EXIT_FAILURE);
     }
 }
@@ -41,7 +41,7 @@ void Vas(int sem, int CLE ) {
     /* Récupération du tableau de sémaphores */
     if((semid = semget((key_t)CLE, 0, 0)) == -1) {
         ncurses_stopper();
-        fprintf(stderr, "Erreur lors de la récupération du tableau de sémaphores ");
+        fprintf(stderr, "Erreur lors de la récupération du tableau de sémaphores Vas\n");
         exit(EXIT_FAILURE);
     }
     /* Réalisation de V(Sxx) */
@@ -50,7 +50,7 @@ void Vas(int sem, int CLE ) {
     op.sem_flg = 0;
     if(semop(semid, &op, 1) == -1) {
         ncurses_stopper();
-        fprintf(stderr, "Erreur lors de l'opération sur le sémaphore ");
+        fprintf(stderr, "Erreur lors de l'opération sur le sémaphore Vas\n");
         exit(EXIT_FAILURE);
     }
     

@@ -38,7 +38,7 @@ int main (int argc, char * argv []){
     r_config_t rconfig;
     e_config_t econfig;
     modif_carte_t modif;
-    WINDOW * fenetre, *sous_fen,*info;
+    WINDOW * fenetre, *sous_fen, *info;
 /*Verification des arguments
     nom fichier carte
     nb max de voitures
@@ -142,16 +142,16 @@ int main (int argc, char * argv []){
 
     
     
-    /*Premier affichage simulation (on gère ça à la fin)*/
+    /*Premier affichage simulation */
     /* Création de la fenêtre d'affichage*/
     fenetre = creerFenetre(HAUTEUR, LARGEUR, POSY, POSX);
     sous_fen = creerSousFenetre(HAUTEUR - 2, LARGEUR - 2, POSY + 1, POSX + 1, FALSE, fenetre);
     info = creerFenetre(HAUTEUR,LARGEUR,POSY,POSX+LARGEUR);
-    /* Definition de la palette */
+    /* Definition de la palette *//*
     init_pair(1, COLOR_WHITE, COLOR_BLACK);
     init_pair(2, COLOR_WHITE, COLOR_RED);
-    init_pair(3, COLOR_WHITE, COLOR_GREEN);
-    init_pair(4, COLOR_BLUE, COLOR_WHITE);
+    init_pair(3, COLOR_WHITE, COLOR_WHITE);
+    init_pair(4, COLOR_BLUE, COLOR_WHITE);*/
 
     /* Colore le fond de la fenêtre */
     wbkgd(fenetre, COLOR_PAIR(4));
@@ -160,6 +160,7 @@ int main (int argc, char * argv []){
     wrefresh(sous_fen);
     wbkgd(info, COLOR_PAIR(1));
     wrefresh(info);
+    printw("Ctrl + C pour arreter la simulation.");
 
 /*Arret sur SIGINT (ou utilisateur) -> arret de toutes les voitures avec SIGINT */
 /*Envoi SIGINT aux programmes voiture*/
@@ -228,7 +229,7 @@ int main (int argc, char * argv []){
             /*V(Semaphore info)*/
             Vas(0,CLE_S);
         }
-        sleep(1);
+        sleep(2);
     }
     delwin(fenetre);
     delwin(sous_fen);
@@ -236,9 +237,9 @@ int main (int argc, char * argv []){
     ncurses_stopper();
     
 /*suppression outils IPC */
-    supprimerFile(msqid);
     supprimerMemoire(shmid);
     supprimerSemaphores(semid);
+    supprimerFile(msqid);
     free(map);
     
 /*arrêt prgm*/

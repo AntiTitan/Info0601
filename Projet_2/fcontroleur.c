@@ -50,7 +50,7 @@ int supprimerFile(int msqid) {
         exit(EXIT_FAILURE);
     }
 
-    printf("File supprimée.\n");
+    printw("File supprimée.\n");
     return EXIT_SUCCESS;
 }
 
@@ -60,7 +60,7 @@ int supprimerMemoire(int shmid) {
         exit(EXIT_FAILURE);
     }
 
-    printf("Memoire supprimée.\n");
+    printw("Memoire supprimée.\n");
     return EXIT_SUCCESS;
 }
 
@@ -70,7 +70,7 @@ int supprimerSemaphores(int semid) {
         exit(EXIT_FAILURE);
     }
 
-    printf("Tableau de sémaphores supprimé.\n");
+    printw("Tableau de sémaphores supprimé.\n");
     return EXIT_SUCCESS;
 }
 
@@ -124,6 +124,7 @@ void afficheZone(unsigned char mat[][NB_C], WINDOW* win){
     for(i=0;i<NB_L;i++) {
         for(j=0;j<NB_C;j++) {
             val = mat[i][j];
+            /*
             switch (val) {
                 case VIDE:
                     wattron(win, COLOR_PAIR(1));
@@ -141,6 +142,23 @@ void afficheZone(unsigned char mat[][NB_C], WINDOW* win){
                     wattroff(win, COLOR_PAIR(3));
                     break;
             }
+            */
+            if (val == VIDE) {
+                wattron(win, COLOR_PAIR(1));
+                afficheMsgFen(win," ");
+                wattroff(win, COLOR_PAIR(1));
+            }
+            else if (val == ROUTE) {
+                wattron(win, COLOR_PAIR(2));
+                afficheMsgFen(win," ");
+                wattroff(win, COLOR_PAIR(2));
+            }
+            else {
+                wattron(win, COLOR_PAIR(3));
+                afficheMsgFen(win,"v");
+                wattroff(win, COLOR_PAIR(3));
+            }
+
         }
     }
     wrefresh(win);

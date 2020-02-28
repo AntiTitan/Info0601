@@ -128,7 +128,6 @@ int main(int argc, char * argv []){
         exit(EXIT_FAILURE);
     }
     printf("Voiture %d : envoi de la position de depart.\n",numVoiture);
-
     printf("emplacement libre trouve: x %d, y %d\n",posx,posy);
 
 
@@ -150,7 +149,6 @@ int main(int argc, char * argv []){
         posy = map->position[numVoiture-1][1];
         d = alea(1, 4);
         cpt = 0;
-        printf("boucle while avant tentative de deplacement %d\n",d);
 
         /*si la voiture est sur la premiere/derniere ligne/colonne (certaine(s) direction(s) impossible(s)) ou s'il n'y a pas 
           de route dans la direction choisie ou s'il y a deja une voiture, on essaye la direction suivante si apres avoir tente
@@ -166,7 +164,7 @@ int main(int argc, char * argv []){
                     else {
                         map->carte.grille[posx-1][posy] = numVoiture;
                         map->carte.grille[posx][posy] = ROUTE;
-                        cpt=4;
+                        cpt=7;
                     }
                     break;
                 case DROITE:
@@ -177,7 +175,7 @@ int main(int argc, char * argv []){
                     else {
                         map->carte.grille[posx][posy+1] = numVoiture;
                         map->carte.grille[posx][posy] = ROUTE;
-                        cpt=4;
+                        cpt=7;
                     }
                     break;
                 case BAS:
@@ -188,7 +186,7 @@ int main(int argc, char * argv []){
                     else {
                         map->carte.grille[posx+1][posy] = numVoiture;
                         map->carte.grille[posx][posy] = ROUTE;
-                        cpt=4;
+                        cpt=7;
                     }
                     break;
                 case GAUCHE:
@@ -199,25 +197,23 @@ int main(int argc, char * argv []){
                     else {
                         map->carte.grille[posx][posy-1] = numVoiture;
                         map->carte.grille[posx][posy] = ROUTE;
-                        cpt=4;
+                        cpt=7;
                     }
                     break;
             }
         }
-        printf("boucle while apres recherche de deplacement\n");
         if (cpt == 4) {
             /*pas de deplacement*/
             printf("impossible de se deplacer\n");
         }
         else {
-            printf("boucle while tentative deplacement\n");
             /*avertissement changement position*/
             /*envoi message*/
             if(msgsnd(msqid, &modification, sizeof(modif_carte_t) - sizeof(long), 0) == -1) {
                 perror("Erreur lors de l'envoi de la requête ");
                 exit(EXIT_FAILURE);
             }
-            printf("Voiture %d : envoi d'une requête de modif.\n",numVoiture);
+            printf("Voiture %d : envoi d'une requête de modif en %d.\n",numVoiture, d);
 
         }
         /*V(Semaphore du seg memoire)*/
