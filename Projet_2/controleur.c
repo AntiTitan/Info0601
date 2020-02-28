@@ -100,6 +100,13 @@ int main (int argc, char * argv []){
     }
     /*Attachement du segment memoire partagée*/
 
+    /* Attachement de la map au segment de mémoire partagée */
+    if((map = shmat(shmid, NULL, 0)) == (void*)-1) {
+        fprintf(stderr, "Erreur lors de l'attachement du segment de mémoire partagée ");
+        exit(EXIT_FAILURE);
+    }
+    printf("attachement au segment de memoire\n");
+    
     /*Premier affichage simulation (on gère ça à la fin)*/
 
 /*Arret sur SIGINT (ou utilisateur) -> arret de toutes les voitures avec SIGINT */

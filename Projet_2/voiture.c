@@ -35,7 +35,7 @@ int main(int argc, char * argv []){
     rapidité message -> servira au timeout de ncurses
     */
     if (argc != 3) {
-        fprintf(stderr, "Nombre d'arguments incorrect:  ./voiture CLE\n");
+        fprintf(stderr, "Nombre d'arguments incorrect:  ./voiture CLE_FILE\n");
         exit(EXIT_FAILURE);
     }
     CLE_F = atoi(argv[1]);
@@ -45,8 +45,8 @@ int main(int argc, char * argv []){
     /* Récupération de la file */
     msqid = recupererFile(CLE_F);
 /*Si oui,   recup autres outils IPC (seg mem et tab sema)
-            choisi une place où se mettre sur la carte
-            met à jour la carte et sa position
+  choisi une place où se mettre sur la carte met à jour 
+  la carte et sa position
 */
     /* Envoi d'une requête */
     
@@ -73,10 +73,8 @@ int main(int argc, char * argv []){
     /* Récupération du tableau de sémaphores */
     semid = recupererSemaphores(CLE_S);
 
-
-
     printf("%d",semid);
-        printf("%d",rapidite);
+    printf("%d",rapidite);
 
     /* Attachement de la map au segment de mémoire partagée */
     if((map = shmat(shmid, NULL, 0)) == (void*)-1) {
