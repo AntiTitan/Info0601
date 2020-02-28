@@ -163,9 +163,9 @@ void afficheZone(unsigned char mat[][NB_C], WINDOW* win,WINDOW * info){
             }
             else {
                 afficheMsgFen(info,"voiture\n");
-                wattron(win, COLOR_PAIR(3));
+                wattron(win, COLOR_PAIR(4));
                 afficheMsgFen(win,"v");
-                wattroff(win, COLOR_PAIR(3));
+                wattroff(win, COLOR_PAIR(4));
             }
 
         }

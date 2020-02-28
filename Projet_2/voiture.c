@@ -91,7 +91,10 @@ int main(int argc, char * argv []){
         fprintf(stderr,"Il y a dejà trop de voitures\n");
         exit(EXIT_FAILURE);
     }
-    numVoiture = i+1;
+    numVoiture = i+2;
+    printf("moi je marche\n");
+    printf("je suis i :%d\n",i);
+    
     modification.voiture = numVoiture;
 
     printf("position voiture libre trouvee\n");

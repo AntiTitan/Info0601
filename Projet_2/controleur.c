@@ -22,6 +22,7 @@ void handler_Controleur(int signal){
         supprimerMemoire(arret[1]);
         supprimerSemaphores(arret[2]);
         supprimerFile(arret[0]);
+        ncurses_stopper();
         stopControleur =1;
     }
 }
