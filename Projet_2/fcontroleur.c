@@ -118,8 +118,8 @@ void afficheMsgFen(WINDOW* win,char* c) {
     wrefresh(win);
 }
 
-void afficheZone(unsigned char mat[][NB_C], WINDOW* win){
-    int i,j,val;
+void afficheZone(unsigned char mat[][NB_C], WINDOW* win,WINDOW * info){
+    int i,j,val,stop =0,stop2=0;
     
     for(i=0;i<NB_L;i++) {
         for(j=0;j<NB_C;j++) {
@@ -144,16 +144,25 @@ void afficheZone(unsigned char mat[][NB_C], WINDOW* win){
             }
             */
             if (val == VIDE) {
+                if(!stop){
+                    afficheMsgFen(info,"vide\n");
+                }
                 wattron(win, COLOR_PAIR(1));
                 afficheMsgFen(win," ");
                 wattroff(win, COLOR_PAIR(1));
+                stop =1;
             }
             else if (val == ROUTE) {
+                if(!stop2){
+                    afficheMsgFen(info,"route\n");
+                }
                 wattron(win, COLOR_PAIR(2));
                 afficheMsgFen(win," ");
                 wattroff(win, COLOR_PAIR(2));
+                stop2 =1;
             }
             else {
+                afficheMsgFen(info,"voiture\n");
                 wattron(win, COLOR_PAIR(3));
                 afficheMsgFen(win,"v");
                 wattroff(win, COLOR_PAIR(3));

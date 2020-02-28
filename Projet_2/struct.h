@@ -11,6 +11,7 @@
 #include <errno.h>      /* Pour errno */
 #include <sys/stat.h>   /* Pour S_IRUSR, S_IWUSR */
 #include <unistd.h> 
+#include <time.h> 
 #include <sys/types.h>
 #include <signal.h>    /* Pour sigaction */
 #include <sys/sem.h>    /* Pour semget, semctl */

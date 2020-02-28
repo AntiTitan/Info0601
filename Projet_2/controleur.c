@@ -19,9 +19,9 @@ void handler_Controleur(int signal){
             }
         }
         /*suppression outils IPC */
-        supprimerFile(arret[0]);
         supprimerMemoire(arret[1]);
         supprimerSemaphores(arret[2]);
+        supprimerFile(arret[0]);
         stopControleur =1;
     }
 }
@@ -150,7 +150,7 @@ int main (int argc, char * argv []){
     /* Definition de la palette */
     init_pair(1, COLOR_WHITE, COLOR_BLACK);
     init_pair(2, COLOR_WHITE, COLOR_RED);
-    init_pair(3, COLOR_WHITE, COLOR_WHITE);
+    init_pair(3, COLOR_WHITE, COLOR_BLUE);
     init_pair(4, COLOR_BLUE, COLOR_WHITE);
 
     /* Colore le fond de la fenêtre */
@@ -161,6 +161,12 @@ int main (int argc, char * argv []){
     wbkgd(info, COLOR_PAIR(1));
     wrefresh(info);
     printw("Ctrl + C pour arreter la simulation.");
+
+    Peux(0,CLE_S);
+    /*affichage avec ncurses*/
+    afficheZone(map->carte.grille, sous_fen,info);
+    /*V(Semaphore info)*/
+    Vas(0,CLE_S);
 
 /*Arret sur SIGINT (ou utilisateur) -> arret de toutes les voitures avec SIGINT */
 /*Envoi SIGINT aux programmes voiture*/
@@ -225,7 +231,7 @@ int main (int argc, char * argv []){
             /*P(Semaphore info)*/
             Peux(0,CLE_S);
             /*affichage avec ncurses*/
-            afficheZone(map->carte.grille, sous_fen);
+            afficheZone(map->carte.grille, sous_fen,info);
             /*V(Semaphore info)*/
             Vas(0,CLE_S);
         }

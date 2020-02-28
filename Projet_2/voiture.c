@@ -32,7 +32,7 @@ int main(int argc, char * argv []){
     }
     CLE_F = atoi(argv[1]);
     rapidite = atoi(argv[2]);
-    
+    srand(time(NULL));
     /* Positionnement du gestionnaire pour SIGINT */
     action.sa_handler = handler_Voiture;
     sigemptyset(&action.sa_mask);
