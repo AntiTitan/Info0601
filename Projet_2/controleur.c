@@ -1,17 +1,23 @@
 #define _XOPEN_SOURCE
 #include "fcontroleur.h"
 
-int stopControleur=0;
+int stopControleur=0,nbv;
 int arret[3];
+pid_t * voitures;
+int maxVoitures;
 
 void handler_Controleur(int signal){
-    pid_t pid;
+    int i=0,stop=0;
     if(signal == SIGINT){
-        printw("recu controller\nnum pid ? ");
-        if(scanf("%d",&pid)==-1){
-            exit(EXIT_FAILURE);
+        while((!stop) && i<maxVoitures){
+            if(voitures[i]!=-1){
+                kill(voitures[i],SIGINT);
+                i++;
+            }
+            else{
+                stop=1;
+            }
         }
-        kill(pid,SIGINT);
         /*suppression outils IPC */
         supprimerFile(arret[0]);
         supprimerMemoire(arret[1]);
@@ -25,8 +31,8 @@ int main (int argc, char * argv []){
     int msqid, shmid, semid, size;
     int i,fic,j,trouve;
     unsigned short val[NBSEM];/*tableau d'initialisation des sem*/
-    /*1 semaphore pour la carte entière ou un semaphore pour une zone 5x5 ?*/
-    pid_t voitures [MAX_VOITURE];
+    /*1 semaphore pour la carte entière*/
+    
     info_t *map;
     struct sigaction action;
     r_config_t rconfig;
@@ -49,7 +55,14 @@ int main (int argc, char * argv []){
     CLE_F = atoi(argv[3]);
     CLE_M = atoi(argv[4]);
     CLE_S = atoi(argv[5]);
+    maxVoitures = nbV;
     
+    if((voitures=malloc(sizeof(pid_t)*nbV))==NULL){
+        ncurses_stopper();
+        fprintf(stderr, "erreur malloc\n");
+        exit(EXIT_FAILURE);
+    }
+
     /* Positionnement du gestionnaire pour SIGINT */
     action.sa_handler = handler_Controleur;
     sigemptyset(&action.sa_mask);
@@ -73,15 +86,11 @@ int main (int argc, char * argv []){
 
     if ((map = malloc(sizeof(info_t)))==NULL) {
         ncurses_stopper();
-        fprintf(stderr, "erreur malloc");
+        fprintf(stderr, "erreur malloc\n");
         exit(EXIT_FAILURE);
     }
     size = sizeof(map);
-    for(j=0;j<MAX_VOITURE;j++){
-        voitures[j]=0;
-        map->position[j][0]=-1;
-        map->position[j][1]=-1;
-    }
+    
 
 /*Création outils IPC*/
 
@@ -102,29 +111,36 @@ int main (int argc, char * argv []){
     /* Initialisation des sémaphores */
     if(semctl(semid, 0, SETALL, val) == -1) {
         ncurses_stopper();
-        fprintf(stderr, "Erreur lors de l'initialisation des sémaphores ");
+        fprintf(stderr, "Erreur lors de l'initialisation des sémaphores\n");
         exit(EXIT_FAILURE);
     }
 /*Remplissage seg memoire*/
+/* Attachement de la map au segment de mémoire partagée */
+    if((map = shmat(shmid, NULL, 0)) == (void*)-1) {
+        ncurses_stopper();
+        fprintf(stderr, "Erreur lors de l'attachement du segment de mémoire partagée\n");
+        exit(EXIT_FAILURE);
+    }
+
+    for(j=0;j<MAX_VOITURE;j++){
+        voitures[j]=0;
+        map->position[j][0]=-1;
+        map->position[j][1]=-1;
+    }
+    
     /*Extraction info du fichier*/
     if((fic = ouvrir_fichier(argv[1]))==-1){
         ncurses_stopper();
-        fprintf(stderr, "Erreur lors de l'ouverture du fichier carte ");
+        fprintf(stderr, "Erreur lors de l'ouverture du fichier carte\n");
         exit(EXIT_FAILURE);
     }
     if(lire_fichier(fic, map->carte.grille, argv[1])==-1){
         ncurses_stopper();
-        fprintf(stderr, "Erreur lors de la lecture du fichier carte ");
+        fprintf(stderr, "Erreur lors de la lecture du fichier carte\n");
         exit(EXIT_FAILURE);
     }
 
-    /* Attachement de la map au segment de mémoire partagée */
-    if((map = shmat(shmid, NULL, 0)) == (void*)-1) {
-        ncurses_stopper();
-        fprintf(stderr, "Erreur lors de l'attachement du segment de mémoire partagée ");
-        exit(EXIT_FAILURE);
-    }
-    printw("attachement au segment de memoire.");
+    
     
     /*Premier affichage simulation (on gère ça à la fin)*/
     /* Création de la fenêtre d'affichage*/
@@ -148,7 +164,7 @@ int main (int argc, char * argv []){
     while(!stopControleur){
         if(sigaction(SIGINT, &action, NULL) == -1) {
             ncurses_stopper();
-            fprintf(stderr, "Erreur lors du positionnement ");
+            fprintf(stderr, "Erreur lors du positionnement\n");
             exit(EXIT_FAILURE);
         }
         /*Mise en attente messages sur file*/
@@ -157,7 +173,7 @@ int main (int argc, char * argv []){
         if(msgrcv(msqid, &rconfig, sizeof(r_config_t) - sizeof(long), TYPE_RECUP_CONFIG, IPC_NOWAIT) == -1) {
             if(errno!=ENOMSG){
                 ncurses_stopper();
-                fprintf(stderr, "Erreur lors de la réception d'une requête ");
+                fprintf(stderr, "Erreur lors de la réception d'une requête enregistrement\n");
                 exit(EXIT_FAILURE);
             }
             /*Pas de messages TYPE_RECUP_CONFIG*/ 
@@ -185,7 +201,7 @@ int main (int argc, char * argv []){
 
             if(msgsnd(msqid, &econfig, sizeof(e_config_t) - sizeof(long), 0) == -1) {
                 ncurses_stopper();
-                fprintf(stderr, "Erreur lors de l'envoi de la requête ");
+                fprintf(stderr, "Erreur lors de l'envoi de la requête\n");
                 exit(EXIT_FAILURE);
             }
         }
@@ -194,7 +210,7 @@ int main (int argc, char * argv []){
         if(msgrcv(msqid, &modif, sizeof(modif_carte_t) - sizeof(long), TYPE_MODIF_CARTE, IPC_NOWAIT) == -1) {
             if(errno!=ENOMSG){
                 ncurses_stopper();
-                fprintf(stderr, "Erreur lors de la réception d'une requête ");
+                fprintf(stderr, "Erreur lors de la réception d'une requête position\n");
                 exit(EXIT_FAILURE);
             }
             /*Pas de messages TYPE_MODIF_CARTE*/ 

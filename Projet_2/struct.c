@@ -1,5 +1,6 @@
 #include "struct.h"
 
+
 /**
  * P(S) avec S un sémaphore.
  * @param sem   le sémaphore concerne

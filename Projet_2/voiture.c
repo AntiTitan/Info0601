@@ -69,8 +69,8 @@ int main(int argc, char * argv []){
     shmid = recupererMemoire(CLE_M);
     semid = recupererSemaphores(CLE_S);
 /*test d'affichage*/
-    printf("%d",semid);
-    printf("%d",rapidite);
+    printf("%d\n",semid);
+    printf("%d\n",rapidite);
 /******************/
 
     /* Attachement de la map au segment de mémoire partagée */
