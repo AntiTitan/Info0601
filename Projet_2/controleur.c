@@ -147,11 +147,11 @@ int main (int argc, char * argv []){
     fenetre = creerFenetre(HAUTEUR, LARGEUR, POSY, POSX);
     sous_fen = creerSousFenetre(HAUTEUR - 2, LARGEUR - 2, POSY + 1, POSX + 1, FALSE, fenetre);
     info = creerFenetre(HAUTEUR,LARGEUR,POSY,POSX+LARGEUR);
-    /* Definition de la palette *//*
+    /* Definition de la palette */
     init_pair(1, COLOR_WHITE, COLOR_BLACK);
     init_pair(2, COLOR_WHITE, COLOR_RED);
     init_pair(3, COLOR_WHITE, COLOR_WHITE);
-    init_pair(4, COLOR_BLUE, COLOR_WHITE);*/
+    init_pair(4, COLOR_BLUE, COLOR_WHITE);
 
     /* Colore le fond de la fenêtre */
     wbkgd(fenetre, COLOR_PAIR(4));
