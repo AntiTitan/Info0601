@@ -46,8 +46,7 @@ int creerSemaphores(int CLE_S) {
 
 int supprimerFile(int msqid) {
     if(msgctl(msqid, IPC_RMID, 0) == -1) {
-        ncurses_stopper();
-        fprintf(stderr, "Erreur lors de la suppression de la file \n");
+        fprintf(stderr, "Erreur lors de la suppression de la file Controleur \n");
         exit(EXIT_FAILURE);
     }
 
@@ -57,8 +56,7 @@ int supprimerFile(int msqid) {
 
 int supprimerMemoire(int shmid) {
     if(shmctl(shmid, IPC_RMID, 0) == -1) {
-        ncurses_stopper();
-        fprintf(stderr, "Erreur lors de la suppression du segment de mémoire partagée \n");
+        fprintf(stderr, "Erreur lors de la suppression du segment de mémoire partagée Controleur \n");
         exit(EXIT_FAILURE);
     }
 
@@ -68,8 +66,7 @@ int supprimerMemoire(int shmid) {
 
 int supprimerSemaphores(int semid) {
     if(semctl(semid, 0, IPC_RMID) == -1) {
-        ncurses_stopper();
-        fprintf(stderr, "Erreur lors de la suppresion du tableau de sémaphores \n");
+        fprintf(stderr, "Erreur lors de la suppresion du tableau de sémaphores Controleur \n");
         exit(EXIT_FAILURE);
     }
 

@@ -224,7 +224,16 @@ int main (int argc, char * argv []){
             /*V(Semaphore info)*/
             Vas(0,CLE_S);
         }
+        /*P(Semaphore info)*/
+        Peux(0,CLE_S);
+        /*affichage avec ncurses*/
+        afficheZone(map->carte.grille, sous_fen);
+        /*V(Semaphore info)*/
+        Vas(0,CLE_S);
+        sleep(1);
     }
+    delwin(fenetre);
+    delwin(sous_fen);
     ncurses_stopper();
     
 /*suppression outils IPC */

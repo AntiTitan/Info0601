@@ -114,9 +114,10 @@ int main(int argc, char * argv []){
             libre = 1;
         }
         Vas(0,CLE_S);
+        
     }
 
-    printf("emplacement libre trouve\n");
+    printf("emplacement libre trouve: x %d, y %d\n",posx,posy);
 
 
 
@@ -131,13 +132,15 @@ int main(int argc, char * argv []){
             -> envoie message au controlleur pour indiquer un changement
         */
         /*P(Semaphore du seg memoire)*/
+        printf("boucle while avant Peux\n");
         Peux(0,CLE_S);
+        printf("boucle while apres Peux\n");
         /*deplacement*/
         posx = map->position[numVoiture-1][0];
         posy = map->position[numVoiture-1][1];
         d = alea(1, 4);
         cpt = 0;
-        printf("boucle while avant tentative de deplacement\n");
+        printf("boucle while avant tentative de deplacement %d\n",d);
 
         /*si la voiture est sur la premiere/derniere ligne/colonne (certaine(s) direction(s) impossible(s)) ou s'il n'y a pas 
           de route dans la direction choisie ou s'il y a deja une voiture, on essaye la direction suivante si apres avoir tente
@@ -146,43 +149,47 @@ int main(int argc, char * argv []){
         while (cpt<4) {
             switch (d) {
                 case HAUT:/*hesitation entre && et || dans les if*/
-                    if(posx == 0 && map->carte.grille[posx-1][posy] != ROUTE) {
+                    if(posx == 0 || map->carte.grille[posx-1][posy] != ROUTE) {
                         d = (d+1)%4;
                         cpt++;
                     }
                     else {
                         map->carte.grille[posx-1][posy] = numVoiture;
                         map->carte.grille[posx][posy] = ROUTE;
+                        cpt=4;
                     }
                     break;
                 case DROITE:
-                    if(posy == NB_C-1 && map->carte.grille[posx][posy+1] != ROUTE) {
+                    if(posy == NB_C-1 || map->carte.grille[posx][posy+1] != ROUTE) {
                         d = (d+1)%4;
                         cpt++;
                     }
                     else {
                         map->carte.grille[posx][posy+1] = numVoiture;
                         map->carte.grille[posx][posy] = ROUTE;
+                        cpt=4;
                     }
                     break;
                 case BAS:
-                    if(posx == NB_L-1 && map->carte.grille[posx+1][posy] != ROUTE) {
+                    if(posx == NB_L-1 || map->carte.grille[posx+1][posy] != ROUTE) {
                         d = (d+1)%4;
                         cpt++;
                     }
                     else {
                         map->carte.grille[posx+1][posy] = numVoiture;
                         map->carte.grille[posx][posy] = ROUTE;
+                        cpt=4;
                     }
                     break;
                 case GAUCHE:
-                    if(posy == 0 && map->carte.grille[posx][posy-1] != ROUTE) {
+                    if(posy == 0 || map->carte.grille[posx][posy-1] != ROUTE) {
                         d = (d+1)%4;
                         cpt++;
                     }
                     else {
                         map->carte.grille[posx][posy-1] = numVoiture;
                         map->carte.grille[posx][posy] = ROUTE;
+                        cpt=4;
                     }
                     break;
             }
@@ -205,7 +212,7 @@ int main(int argc, char * argv []){
         }
         /*V(Semaphore du seg memoire)*/
         Vas(0,CLE_S);
-
+        sleep(2);
     }
     return EXIT_SUCCESS;
 

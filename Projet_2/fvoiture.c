@@ -8,7 +8,9 @@
  * @return l'entier aléatoire
  */
 int alea(int a, int b) {
-  return rand() % (b - a + 1) + a;
+    int al;
+    al = rand() % (b - a + 1) + a;
+    return (al);
 }
 
 int recupererFile(int CLE_F) {
