@@ -7,7 +7,7 @@ int arret[3];
 void handler_Controleur(int signal){
     pid_t pid;
     if(signal == SIGINT){
-        printf("recu controller\nnum pid ? ");
+        printw("recu controller\nnum pid ? ");
         if(scanf("%d",&pid)==-1){
             exit(EXIT_FAILURE);
         }
@@ -23,7 +23,7 @@ void handler_Controleur(int signal){
 int main (int argc, char * argv []){
     int nbV, CLE_F, CLE_M, CLE_S;
     int msqid, shmid, semid, size;
-    int i,fic,j,trouve,COLS,LINES;
+    int i,fic,j,trouve;
     unsigned short val[NBSEM];/*tableau d'initialisation des sem*/
     /*1 semaphore pour la carte entière ou un semaphore pour une zone 5x5 ?*/
     pid_t voitures [MAX_VOITURE];
@@ -50,7 +50,6 @@ int main (int argc, char * argv []){
     CLE_M = atoi(argv[4]);
     CLE_S = atoi(argv[5]);
     
-    printf("%d",nbV);
     /* Positionnement du gestionnaire pour SIGINT */
     action.sa_handler = handler_Controleur;
     sigemptyset(&action.sa_mask);
@@ -73,8 +72,8 @@ int main (int argc, char * argv []){
 /*Allocation de la structure partagee*/
 
     if ((map = malloc(sizeof(info_t)))==NULL) {
-        fprintf(stderr, "erreur malloc");
         ncurses_stopper();
+        fprintf(stderr, "erreur malloc");
         exit(EXIT_FAILURE);
     }
     size = sizeof(map);
@@ -126,7 +125,7 @@ int main (int argc, char * argv []){
         fprintf(stderr, "Erreur lors de l'attachement du segment de mémoire partagée ");
         exit(EXIT_FAILURE);
     }
-    printf("attachement au segment de memoire\n");
+    printw("attachement au segment de memoire.");
     
     /*Premier affichage simulation (on gère ça à la fin)*/
     /* Création de la fenêtre d'affichage*/
@@ -150,16 +149,16 @@ int main (int argc, char * argv []){
     while(!stopControleur){
         if(sigaction(SIGINT, &action, NULL) == -1) {
             ncurses_stopper();
-            perror("Erreur lors du positionnement ");
+            fprintf(stderr, "Erreur lors du positionnement ");
             exit(EXIT_FAILURE);
         }
         /*Mise en attente messages sur file*/
         /* Attente d'une requête d'enregistrement de voiture */
-        printf("Serveur : en attente d'une requête...\n");
+        /*printw("Serveur : en attente d'une requête...");*/
         if(msgrcv(msqid, &rconfig, sizeof(r_config_t) - sizeof(long), TYPE_RECUP_CONFIG, IPC_NOWAIT) == -1) {
             if(errno!=ENOMSG){
                 ncurses_stopper();
-                perror("Erreur lors de la réception d'une requête ");
+                fprintf(stderr, "Erreur lors de la réception d'une requête ");
                 exit(EXIT_FAILURE);
             }
             /*Pas de messages TYPE_RECUP_CONFIG*/ 
@@ -187,7 +186,7 @@ int main (int argc, char * argv []){
 
             if(msgsnd(msqid, &econfig, sizeof(e_config_t) - sizeof(long), 0) == -1) {
                 ncurses_stopper();
-                perror("Erreur lors de l'envoi de la requête ");
+                fprintf(stderr, "Erreur lors de l'envoi de la requête ");
                 exit(EXIT_FAILURE);
             }
         }
@@ -196,7 +195,7 @@ int main (int argc, char * argv []){
         if(msgrcv(msqid, &modif, sizeof(modif_carte_t) - sizeof(long), TYPE_MODIF_CARTE, IPC_NOWAIT) == -1) {
             if(errno!=ENOMSG){
                 ncurses_stopper();
-                perror("Erreur lors de la réception d'une requête ");
+                fprintf(stderr, "Erreur lors de la réception d'une requête ");
                 exit(EXIT_FAILURE);
             }
             /*Pas de messages TYPE_MODIF_CARTE*/ 

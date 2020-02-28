@@ -92,7 +92,7 @@ int main(int argc, char * argv []){
         exit(EXIT_FAILURE);
     }
     numVoiture = i+1;
-    modification->voiture = numVoiture;
+    modification.voiture = numVoiture;
 
     /*Cherche une position où se placer avec mise à jour carte*/
     /*********************************************************A FAIRE**************************************************************/
@@ -190,8 +190,6 @@ int main(int argc, char * argv []){
         }
         else {
             /*avertissement changement position*/
-            modification.voiture = numVoiture;
-
             /*envoi message*/
             if(msgsnd(msqid, &modification, sizeof(modif_carte_t) - sizeof(long), 0) == -1) {
                 perror("Erreur lors de l'envoi de la requête ");
