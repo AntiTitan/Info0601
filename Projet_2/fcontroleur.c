@@ -124,7 +124,6 @@ void afficheZone(unsigned char mat[][NB_C], WINDOW* win){
     for(i=0;i<NB_L;i++) {
         for(j=0;j<NB_C;j++) {
             val = mat[i][j];
-            
             switch (val) {
                 case VIDE:
                     wattron(win, COLOR_PAIR(1));
@@ -136,7 +135,7 @@ void afficheZone(unsigned char mat[][NB_C], WINDOW* win){
                     afficheMsgFen(win," ");
                     wattroff(win, COLOR_PAIR(2));
                     break;
-                default:
+                case 3:
                     wattron(win, COLOR_PAIR(3));
                     afficheMsgFen(win," ");
                     wattroff(win, COLOR_PAIR(3));
