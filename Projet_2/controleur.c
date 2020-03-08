@@ -1,16 +1,19 @@
 #define _XOPEN_SOURCE
 #include "fcontroleur.h"
 
-int stopControleur=0,nbv;
+int stopControleur=0;
+int nbv;
 int arret[3];
 pid_t * voitures;
 int maxVoitures;
+
+
 
 void handler_Controleur(int signal){
     int i=0,stop=0;
     if(signal == SIGINT){
         while((!stop) && i<maxVoitures){
-            if(voitures[i]!=-1){
+            if(voitures[i]!=0){
                 kill(voitures[i],SIGINT);
                 i++;
             }
@@ -18,11 +21,7 @@ void handler_Controleur(int signal){
                 stop=1;
             }
         }
-        /*suppression outils IPC */
-        supprimerMemoire(arret[1]);
-        supprimerSemaphores(arret[2]);
-        supprimerFile(arret[0]);
-        ncurses_stopper();
+
         stopControleur =1;
     }
 }
@@ -68,6 +67,12 @@ int main (int argc, char * argv []){
     action.sa_handler = handler_Controleur;
     sigemptyset(&action.sa_mask);
     action.sa_flags = 0;
+
+    if(sigaction(SIGINT, &action, NULL) == -1) {
+        ncurses_stopper();
+        fprintf(stderr, "Erreur lors du positionnement\n");
+        exit(EXIT_FAILURE);
+    }
 
     /* Initialisation de ncurses */
     ncurses_initialiser();
@@ -115,6 +120,8 @@ int main (int argc, char * argv []){
         fprintf(stderr, "Erreur lors de l'initialisation des sémaphores\n");
         exit(EXIT_FAILURE);
     }
+
+
 /*Remplissage seg memoire*/
 /* Attachement de la map au segment de mémoire partagée */
     if((map = shmat(shmid, NULL, 0)) == (void*)-1) {
@@ -129,6 +136,8 @@ int main (int argc, char * argv []){
         map->position[j][1]=-1;
     }
     
+
+
     /*Extraction info du fichier*/
     if((fic = ouvrir_fichier(argv[1]))==-1){
         ncurses_stopper();
@@ -141,8 +150,6 @@ int main (int argc, char * argv []){
         exit(EXIT_FAILURE);
     }
 
-    
-    
     /*Premier affichage simulation */
     /* Création de la fenêtre d'affichage*/
     fenetre = creerFenetre(HAUTEUR, LARGEUR, POSY, POSX);
@@ -169,14 +176,12 @@ int main (int argc, char * argv []){
     /*V(Semaphore info)*/
     Vas(0,CLE_S);
 
+   
+
 /*Arret sur SIGINT (ou utilisateur) -> arret de toutes les voitures avec SIGINT */
 /*Envoi SIGINT aux programmes voiture*/
-    while(!stopControleur){
-        if(sigaction(SIGINT, &action, NULL) == -1) {
-            ncurses_stopper();
-            fprintf(stderr, "Erreur lors du positionnement\n");
-            exit(EXIT_FAILURE);
-        }
+    while(stopControleur == 0){
+       
         /*Mise en attente messages sur file*/
         /* Attente d'une requête d'enregistrement de voiture */
         /*printw("Serveur : en attente d'une requête...");*/
@@ -193,7 +198,7 @@ int main (int argc, char * argv []){
             trouve =0;
             j=0;
             while(j<MAX_VOITURE && !trouve){
-                if(voitures[j]==0){
+                if(voitures[j]!=0){
                     j++;
                 }
                 else{
@@ -228,15 +233,18 @@ int main (int argc, char * argv []){
         }
         /*Affichage de la simulation*/
         else{
+
             afficheMsgFen(info,"modif voiture\n");
             /*P(Semaphore info)*/
             Peux(0,CLE_S);
+
             /*affichage avec ncurses*/
             afficheZone(map->carte.grille, sous_fen,info);
             /*V(Semaphore info)*/
             Vas(0,CLE_S);
         }
-        sleep(2);
+
+        /*sleep(2);*/
     }
     delwin(fenetre);
     delwin(sous_fen);
@@ -244,10 +252,10 @@ int main (int argc, char * argv []){
     ncurses_stopper();
     
 /*suppression outils IPC */
+    free(voitures);
     supprimerMemoire(shmid);
     supprimerSemaphores(semid);
     supprimerFile(msqid);
-    free(map);
     
 /*arrêt prgm*/
     return EXIT_SUCCESS;

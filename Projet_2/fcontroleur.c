@@ -123,26 +123,13 @@ void afficheZone(unsigned char mat[][NB_C], WINDOW* win,WINDOW * info){
     
     for(i=0;i<NB_L;i++) {
         for(j=0;j<NB_C;j++) {
+
             val = mat[i][j];
-            /*
-            switch (val) {
-                case VIDE:
-                    wattron(win, COLOR_PAIR(1));
-                    afficheMsgFen(win," ");
-                    wattroff(win, COLOR_PAIR(1));
-                    break;
-                case ROUTE:
-                    wattron(win, COLOR_PAIR(2));
-                    afficheMsgFen(win," ");
-                    wattroff(win, COLOR_PAIR(2));
-                    break;
-                case 3:
-                    wattron(win, COLOR_PAIR(3));
-                    afficheMsgFen(win," ");
-                    wattroff(win, COLOR_PAIR(3));
-                    break;
-            }
-            */
+
+            mvprintw(i+20, j, "%d - ", val);
+
+            refresh();
+
             if (val == VIDE) {
                 if(!stop){
                     afficheMsgFen(info,"vide\n");
@@ -165,7 +152,8 @@ void afficheZone(unsigned char mat[][NB_C], WINDOW* win,WINDOW * info){
                 afficheMsgFen(info,"voiture\n");
                 wrefresh(info);
                 wattron(win, COLOR_PAIR(4));
-                afficheMsgFen(win,"v");
+                mvwprintw(win, i, j, " ");
+                /*afficheMsgFen(win,"v"); */
                 wattroff(win, COLOR_PAIR(4));
             }
         }

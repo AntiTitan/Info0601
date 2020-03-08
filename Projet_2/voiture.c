@@ -9,7 +9,8 @@
 int stopVoiture=0;
 void handler_Voiture(int signal){
     if(signal == SIGINT){
-        stopVoiture =1;
+        printf("bonjour\n");
+        exit(EXIT_SUCCESS);
     }
 }
 
@@ -21,6 +22,7 @@ int main(int argc, char * argv []){
     r_config_t requete_r;
     e_config_t requete_e;
     modif_carte_t modification;
+
 
     /*Verification des arguments
     clé file messages
@@ -37,6 +39,12 @@ int main(int argc, char * argv []){
     action.sa_handler = handler_Voiture;
     sigemptyset(&action.sa_mask);
     action.sa_flags = 0;
+
+    if(sigaction(SIGINT, &action, NULL) == -1) {
+        perror("Erreur lors du positionnement ");
+        exit(EXIT_FAILURE);
+    }
+
     if(rapidite>=5){
         rapidite = 5;
     }
@@ -79,6 +87,8 @@ int main(int argc, char * argv []){
     }
     printf("attachement au segment de memoire\n");
 
+
+
     /*cherche position libre dans liste voiture -> devient la voiture i*/
     Peux(0,CLE_S);
     i = 0;
@@ -90,7 +100,6 @@ int main(int argc, char * argv []){
         fprintf(stderr,"Il y a dejà trop de voitures\n");
         exit(EXIT_FAILURE);
     }
-    numVoiture = i+2;
     
     modification.voiture = numVoiture;
 
@@ -107,18 +116,21 @@ int main(int argc, char * argv []){
         if(map->carte.grille[posx][posy] == ROUTE) {
         /*init map->position[numVoiture-1][0] et map->position[numVoiture-1][1]*/
             /*mise à jour position dans seg memoire*/
-            map->position[numVoiture-1][0] = posx;
-            map->position[numVoiture-1][1] = posy;
+            map->position[numVoiture][0] = posx;
+            map->position[numVoiture][1] = posy;
             /*mise à jour de la grille*/
-            map->carte.grille[posx][posy] = numVoiture;
+            map->carte.grille[posx][posy] = numVoiture+2;
             libre = 1;
         }
+
+
+
         /*envoi message*/
             if(msgsnd(msqid, &modification, sizeof(modif_carte_t) - sizeof(long), 0) == -1) {
                 perror("Erreur lors de l'envoi de la requête ");
                 exit(EXIT_FAILURE);
             }
-            printf("Voiture %d : envoi d'une requête de modif.\n",numVoiture);
+            printf("Voiture %d : envoi d'une requête de modif.\n",numVoiture+2);
         Vas(0,CLE_S);
         
     }
@@ -127,17 +139,12 @@ int main(int argc, char * argv []){
         perror("Erreur lors de l'envoi de la requête ");
         exit(EXIT_FAILURE);
     }
-    printf("Voiture %d : envoi de la position de depart.\n",numVoiture);
+    printf("Voiture %d : envoi de la position de depart.\n",numVoiture+2);
     printf("emplacement libre trouve: x %d, y %d\n",posx,posy);
-
-
 
     /*arret sur reception SIGINT*/
     while(!stopVoiture){
-        if(sigaction(SIGINT, &action, NULL) == -1) {
-            perror("Erreur lors du positionnement ");
-            exit(EXIT_FAILURE);
-        }
+        
         /*se déplace régulièrement 
             -> met à jour sa position sur la carte (choisi sa direction ou garde sa précédente s'il n'y a pas d'obstacle)
             -> envoie message au controlleur pour indiquer un changement
@@ -145,8 +152,11 @@ int main(int argc, char * argv []){
         /*P(Semaphore du seg memoire)*/
         Peux(0,CLE_S);
         /*deplacement*/
-        posx = map->position[numVoiture-1][0];
-        posy = map->position[numVoiture-1][1];
+        posx = map->position[numVoiture][0];
+        posy = map->position[numVoiture][1];
+
+        printf("%d - %d\n", posx, posy);
+
         d = alea(1, 4);
         cpt = 0;
 
@@ -162,8 +172,9 @@ int main(int argc, char * argv []){
                         cpt++;
                     }
                     else {
-                        map->carte.grille[posx-1][posy] = numVoiture;
+                        map->carte.grille[posx-1][posy] = numVoiture+2;
                         map->carte.grille[posx][posy] = ROUTE;
+                        map->position[numVoiture][0]--;
                         cpt=7;
                     }
                     break;
@@ -173,8 +184,9 @@ int main(int argc, char * argv []){
                         cpt++;
                     }
                     else {
-                        map->carte.grille[posx][posy+1] = numVoiture;
+                        map->carte.grille[posx][posy+1] = numVoiture+2;
                         map->carte.grille[posx][posy] = ROUTE;
+                        map->position[numVoiture][1]++;
                         cpt=7;
                     }
                     break;
@@ -184,8 +196,9 @@ int main(int argc, char * argv []){
                         cpt++;
                     }
                     else {
-                        map->carte.grille[posx+1][posy] = numVoiture;
+                        map->carte.grille[posx+1][posy] = numVoiture+2;
                         map->carte.grille[posx][posy] = ROUTE;
+                        map->position[numVoiture][0]++;
                         cpt=7;
                     }
                     break;
@@ -195,9 +208,10 @@ int main(int argc, char * argv []){
                         cpt++;
                     }
                     else {
-                        map->carte.grille[posx][posy-1] = numVoiture;
+                        map->carte.grille[posx][posy-1] = numVoiture+2;
                         map->carte.grille[posx][posy] = ROUTE;
                         cpt=7;
+                        map->position[numVoiture][1]--;
                     }
                     break;
             }
@@ -213,7 +227,7 @@ int main(int argc, char * argv []){
                 perror("Erreur lors de l'envoi de la requête ");
                 exit(EXIT_FAILURE);
             }
-            printf("Voiture %d : envoi d'une requête de modif en %d.\n",numVoiture, d);
+            printf("Voiture %d : envoi d'une requête de modif en %d.\n",numVoiture+2, d);
 
         }
         /*V(Semaphore du seg memoire)*/

@@ -24,7 +24,7 @@ OBJETS_O = $(OBJETS) $(EXEC_O)
 #
 #CLE_MSG = 1056
 CC = gcc
-CCFLAGS = -Wall -O3  -pedantic -g -D_POSIX_C_SOURCE#-D CLE=$(CLE_MSG)
+CCFLAGS = -Wall -Og  -pedantic -g -D_POSIX_C_SOURCE#-D CLE=$(CLE_MSG)
 CCLIBS = -lncurses
 
 #
