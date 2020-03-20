@@ -11,6 +11,9 @@
 #include <string.h>     /* Pour memset */
 /*define*/
 
+/* CS -> du client au serveur : reçu uniquement par le serveur*/
+/* SC -> du serveur au client : reçu uniquement par le client*/
+
 /* connexion UDP CS*/
 #define CO_UDP_CS 0
 /* connexion TCP CS*/
@@ -37,6 +40,10 @@
 #define WIN_GAME 11
 /* fin du jeu SC */
 #define ENDGAME 12
+/* données du jeu SC */
+#define GAME 13
+/* dnnées du jeu SC */
+#define GAME 14
 
 /*struct*/
 
