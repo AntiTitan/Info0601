@@ -23,7 +23,7 @@ OBJETS_O = $(OBJETS) $(EXEC_O)
 # ARGUMENTS ET COMPILATEUR
 #
 
-CC = gcc
+CC = gcc -g -pthread
 CCFLAGS = -Wall -O3 -ansi -pedantic -Werror
 CCLIBS =
 

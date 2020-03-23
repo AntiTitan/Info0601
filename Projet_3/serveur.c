@@ -83,6 +83,7 @@ void* pthreadTCP(void* args) {
             exit(EXIT_FAILURE);
         }
     }
+    return NULL;
 }
 
 int main (int argc, char * argv []){
@@ -191,6 +192,9 @@ int main (int argc, char * argv []){
 
             /*création d'un thread avec le numéro de port de adresseServeurTCP à cet instant*/   
             statut= pthread_create(&threadTCP, NULL, pthreadTCP,port);
+            if(statut!=0){
+                printf("Pb création thread\n");
+            }
             if(pair){
                 numPort ++;
                 pair =0;

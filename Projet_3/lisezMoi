@@ -1,0 +1,4 @@
+Les joeurs peuvent se connecter en UDP, le serveur leur envoie l'adresse TCP. 
+Un thread sur le serveur gère le TCP et les joueurs essaient de se onnecter en TCP.
+
+    -> la connexion du joueur au serveur en TCP échoue !
