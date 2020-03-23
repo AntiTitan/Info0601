@@ -25,8 +25,8 @@
 /*struct*/
 
     /*les differentes choses que l'on peut trouver dans l'étang*/
-typedef struct{
-    int typeObjet=0;
+typedef struct obj{
+    int typeObjet;
     int idPoiscaille;
     int typePoisson;
     int idJoueur;
@@ -36,18 +36,18 @@ typedef struct{
 }objet_t;
 
     /* grille représentant l'étang */
-typedef struct{
+typedef struct grille{
     int largeur;
     int hauteur;
     objet_t **  objet;
     /*mutex et variable cond*/
 }grille_t;
 
-typedef struct{
+typedef struct j{
     int idJoueur;
     int nbPoints;
     int poireaus;
     /*mutex et variable cond*/
-}
+}joueur_t;
 
 #endif

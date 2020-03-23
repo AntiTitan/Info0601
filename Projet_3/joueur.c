@@ -1,14 +1,75 @@
 /*include*/
+#include <stdlib.h>      /* Pour exit, EXIT_FAILURE, EXIT_SUCCESS */
+#include <stdio.h>       /* Pour printf, fprintf, perror */
+#include <sys/socket.h>  /* Pour socket, bind */
+#include <arpa/inet.h>   /* Pour sockaddr_in */
+#include <string.h>      /* Pour memset */
+#include <unistd.h>      /* Pour close */
+#include <errno.h>       /* Pour errno */
+
+#include "struct_message.h"
 
 
 int main (int argc, char * argv []){
-    /*déclarations*/
 
-    /*vérification des arguments*/
+/*déclarations*/
 
-    /*connexion au serveur en UDP*/
+    int sockfdUDP/*, sockfdTCP*/;
+    struct sockaddr_in adresseServeurUDP /*, adresseServeurTCP*/;
+    message_t reqUDP,repUDP;
 
-    /*reception des informations TCP*/
+/*vérification des arguments
+    adresse IP
+    numéro de port UDP du serveur
+*/
+
+   if(argc != 3) {
+        fprintf(stderr, "Usage : %s adresseIP port \n", argv[0]);
+        fprintf(stderr, "Où :\n");
+        fprintf(stderr, " adresseIP : adresse IP du serveur du serveur\n");
+        fprintf(stderr, " port  : port d'écoute du serveur\n");
+        exit(EXIT_FAILURE);
+    }
+    reqUDP.typeMessage = CO_UDP_CS;
+
+/*connexion au serveur en UDP*/
+
+        /* Création de la socket */
+    if((sockfdUDP = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
+        perror("Erreur lors de la création de la socket ");
+        exit(EXIT_FAILURE);
+    }
+        /* Création de l'adresse du serveur */
+    memset(&adresseServeurUDP, 0, sizeof(struct sockaddr_in));
+    adresseServeurUDP.sin_family = AF_INET;
+    adresseServeurUDP.sin_port = htons(atoi(argv[2]));
+    if(inet_pton(AF_INET, argv[1], &adresseServeurUDP.sin_addr) != 1) {
+        perror("Erreur lors de la conversion de l'adresse ");
+        exit(EXIT_FAILURE);
+    }
+        /* Envoi du message */
+    if(sendto(sockfdUDP, &reqUDP, sizeof(message_t), 0, (struct sockaddr*)&adresseServeurUDP, sizeof(struct sockaddr_in)) == -1) {
+        perror("Erreur lors de l'envoi du message ");
+        exit(EXIT_FAILURE);
+    }
+    printf("Client : message envoyé.\n");
+
+/*reception des informations TCP*/
+
+        /* Attente de la reponse du serveur */
+    if(recvfrom(sockfdUDP, &repUDP, sizeof(message_t), 0, NULL, NULL) == -1) {
+      perror("Erreur lors de la réception du message ");
+      exit(EXIT_FAILURE);
+    }
+
+    if(repUDP.typeMessage != INFO_TCP_SC){
+        printf("Mauvais type de message\nRequete ignorée\n");
+    }
+    else{
+        printf("Info TCP reçues\n");
+    }
+    /* adresseServeurTCP = repUDP.adresse;*/
+    
 
     /*connexion au serveur en TCP*/
 
@@ -30,5 +91,11 @@ int main (int argc, char * argv []){
         /*message du serveur -> victime de dynamite*/
 
     /*message du serveur -> fin de partie*/
-    return EXIT_SUCESS;
+
+    /* Fermeture de la socket */
+    if(close(sockfdUDP) == -1) {
+        perror("Erreur lors de la fermeture de la socket ");
+        exit(EXIT_FAILURE);
+    }
+    return (EXIT_SUCCESS);
 }

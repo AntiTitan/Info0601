@@ -42,14 +42,12 @@
 #define ENDGAME 12
 /* données du jeu SC */
 #define GAME 13
-/* dnnées du jeu SC */
-#define GAME 14
 
 /*struct*/
 
 /**** soit une seule struct pour tous les messages******/
 
-typedef struct {
+typedef struct message{
     int typeMessage;
     struct sockaddr_in adresse;
     int position [2];/* position de la ligne ou des poissons*/
