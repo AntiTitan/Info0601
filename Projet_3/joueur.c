@@ -14,9 +14,10 @@ int main (int argc, char * argv []){
 
 /*déclarations*/
 
-    int sockfdUDP/*, sockfdTCP*/;
-    struct sockaddr_in adresseServeurUDP /*, adresseServeurTCP*/;
+    int sockfdUDP, sockfdTCP;
+    struct sockaddr_in adresseServeurUDP , adresseServeurTCP;
     message_t reqUDP,repUDP;
+    message_t reqTCP,repTCP;
 
 /*vérification des arguments
     adresse IP
@@ -34,7 +35,7 @@ int main (int argc, char * argv []){
 
 /*connexion au serveur en UDP*/
 
-        /* Création de la socket */
+        /* Création de la socket UDP */
     if((sockfdUDP = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
         perror("Erreur lors de la création de la socket ");
         exit(EXIT_FAILURE);
@@ -68,11 +69,42 @@ int main (int argc, char * argv []){
     else{
         printf("Info TCP reçues\n");
     }
-    /* adresseServeurTCP = repUDP.adresse;*/
+    adresseServeurTCP = repUDP.adresse;
+
+        /* Création de la socket TCP */
+    if((sockfdTCP = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
+        perror("Erreur lors de la création de la socket ");
+        exit(EXIT_FAILURE);
+    }
+
+    if(inet_pton(AF_INET, argv[1], &adresseServeurTCP.sin_addr.s_addr) != 1) {
+        perror("Erreur lors de la conversion de l'adresse ");
+        exit(EXIT_FAILURE);
+    }
     
+/*connexion au serveur en TCP*/
 
-    /*connexion au serveur en TCP*/
+        /* Connexion au serveur */
+    if(connect(sockfdTCP, (struct sockaddr*)&adresseServeurTCP, sizeof(adresseServeurTCP)) == -1) {
+        perror("Erreur lors de la connexion ");
+        exit(EXIT_FAILURE);
+    }
+    reqTCP.typeMessage=CO_TCP_CS;
 
+    if(write(sockfdTCP, &reqTCP , sizeof(message_t)) == -1) {
+      perror("Erreur lors de l'envoi du message ");
+      exit(EXIT_FAILURE);
+    }
+    printf("Client : message TCP envoyé.\n");
+
+    if(read(sockfdTCP, &repTCP, sizeof(message_t)) == -1) {
+      perror("Erreur lors de la lecture de la taille du message ");
+      exit(EXIT_FAILURE);
+    }
+    printf("Client : message TCP recu.\n");
+    if(repTCP.typeMessage==GAME){
+        printf("Bon type !\n");
+    }
     /*reception des données de la partie -> joueur et grille*/
 
     /*création locale de la grille*/

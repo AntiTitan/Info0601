@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE
 /*include*/
 #include <stdlib.h>      /* Pour exit, EXIT_FAILURE, EXIT_SUCCESS */
 #include <stdio.h>       /* Pour printf, fprintf, perror */
@@ -6,19 +7,99 @@
 #include <string.h>      /* Pour memset */
 #include <unistd.h>      /* Pour close */
 #include <errno.h>       /* Pour errno */
+#include <signal.h>    /* Pour sigaction */
+#include <pthread.h>
+#include <sys/stat.h>   /* Pour S_IRUSR, S_IWUSR */
 
 #include "struct_message.h"
+
+int boucle=1;
+
+void stopServeur(int sig){
+    if(sig== SIGINT){
+        boucle=0;
+    }
+}
+
+void* pthreadTCP(void* args) {
+
+	int numPort = *(int*)args;
+    struct sockaddr_in adresseTCP;
+    int fdTCP,j,trouve;
+    int sockClient [2]={0,0};
+    message_t msg;
+
+    /* Création de la socket TCP */
+    if((fdTCP = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
+        perror("Erreur lors de la création de la socket ");
+        exit(EXIT_FAILURE);
+    }
+    /* Création de l'adresse du serveur */
+    memset(&adresseTCP, 0, sizeof(struct sockaddr_in));
+    adresseTCP.sin_family = AF_INET;
+    adresseTCP.sin_addr.s_addr = htonl(INADDR_ANY);
+    adresseTCP.sin_port = htons(numPort);
+
+    /* Nommage de la socket */
+    if(bind(fdTCP, (struct sockaddr*)&adresseTCP, sizeof(struct sockaddr_in)) == -1) {
+        perror("Erreur lors du nommage de la socket ");
+        exit(EXIT_FAILURE);
+    }
+
+    /* Mise en mode passif de la socket */
+    if(listen(fdTCP, 1) == -1) {
+        perror("Erreur lors de la mise en mode passif ");
+        exit(EXIT_FAILURE);
+    }
+
+    while(boucle){
+        j=0;
+        trouve=0;
+        while(!trouve && j<5){
+            if(sockClient[j]!=0){
+                j++;
+            }
+            else{
+                trouve=1;
+            }
+        }
+        /* Attente d'une connexion */
+        printf("Serveur : attente de connexion...\n");
+        if((sockClient[j] = accept(fdTCP, NULL, NULL)) == -1) {
+            perror("Erreur lors de la demande de connexion ");
+            exit(EXIT_FAILURE);
+        }
+        if(read(sockClient[j], &msg, sizeof(message_t) ) == -1) {
+            perror("Erreur lors de la lecture de la taille du message ");
+            exit(EXIT_FAILURE);
+        }
+        if(msg.typeMessage==CO_TCP_CS){
+            printf("TCP réussi\n");
+        }
+        msg.typeMessage = GAME;
+        printf("Serveur TCP: message recu.\n");
+        if(write(sockClient[j], &msg , sizeof(message_t)) == -1) {
+            perror("Erreur lors de l'envoi du message ");
+            exit(EXIT_FAILURE);
+        }
+    }
+}
 
 int main (int argc, char * argv []){
 
 /*déclarations*/
+    struct sigaction action;
 
-    int hauteur, largeur,numPort=1;
+    int hauteur, largeur,numPort=1,pair=0,port[1];
     socklen_t taille;
     int sockfdUDP, fdTCP;
     struct sockaddr_in adresseServeurUDP,adresseServeurTCP;
     struct sockaddr_in adresseClientUDP/*,adresseClientTCP*/;
     message_t reqUDP,repUDP;
+
+    pthread_t threadTCP;
+    int statut;
+    void* res;
 
 /*vérification des arguments
     adresse IP
@@ -37,6 +118,14 @@ int main (int argc, char * argv []){
     largeur = atoi(argv[3]);
     hauteur = atoi(argv[4]);
     largeur ++;hauteur++;
+
+    action.sa_handler = stopServeur;
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = 0;
+    if(sigaction(SIGINT, &action, NULL) == -1) {
+        fprintf(stderr, "Erreur lors du positionnement\n");
+        exit(EXIT_FAILURE);
+    }
 
 /*attente des clients en UDP*/
 
@@ -64,15 +153,10 @@ int main (int argc, char * argv []){
         perror("Erreur lors de la création de la socket ");
         exit(EXIT_FAILURE);
     }
-        /* Création de l'adresse du serveur */
-    memset(&adresseServeurTCP, 0, sizeof(struct sockaddr_in));
-    adresseServeurTCP.sin_family = AF_INET;
-    adresseServeurTCP.sin_addr.s_addr = htonl(atoi(argv[1]));
-    adresseServeurTCP.sin_port = htons(atoi(argv[2])+numPort);
-    numPort ++;
+    
 
         /* Attente des clients */
-    while(1){
+    while(boucle){
         /* Attente de la requête du client UDP */
         printf("Serveur en attente du message du client.\n");
         taille=sizeof(struct sockaddr_in);
@@ -89,15 +173,36 @@ int main (int argc, char * argv []){
         else{
             /* Envoi du message UDP */
             repUDP.typeMessage = INFO_TCP_SC;
+            
+            /* Création de l'adresse du serveur */
+            memset(&adresseServeurTCP, 0, sizeof(struct sockaddr_in));
+            adresseServeurTCP.sin_family = AF_INET;
+            adresseServeurTCP.sin_addr.s_addr = htonl(atoi(argv[1]));
+            *port =atoi(argv[2])+numPort;
+            adresseServeurTCP.sin_port = htons(port);
+            
             repUDP.adresse = adresseServeurTCP;
+
             if(sendto(sockfdUDP, &repUDP, sizeof(message_t), 0, (struct sockaddr*)&adresseClientUDP, sizeof(struct sockaddr_in)) == -1) {
                 perror("Erreur lors de l'envoi du message ");
                 exit(EXIT_FAILURE);
             }
-            printf("Serveur : message envoyé.\n");    
+            printf("Serveur : message envoyé.\n"); 
+
+            /*création d'un thread avec le numéro de port de adresseServeurTCP à cet instant*/   
+            statut= pthread_create(&threadTCP, NULL, pthreadTCP,port);
+            if(pair){
+                numPort ++;
+                pair =0;
+            }
+            else{
+                pair =1;
+            }
+            
         }
         
     }
+    pthread_join(threadTCP,&res);
     
 /*envoi aux client des informations TCP*/
 
