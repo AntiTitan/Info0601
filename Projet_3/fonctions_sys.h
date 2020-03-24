@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE
 #ifndef FONCTIONS_SYS_H
 #define FONCTIONS_SYS_H
 

@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE
 /*include*/
 #include <stdlib.h>      /* Pour exit, EXIT_FAILURE, EXIT_SUCCESS */
 #include <stdio.h>       /* Pour printf, fprintf, perror */

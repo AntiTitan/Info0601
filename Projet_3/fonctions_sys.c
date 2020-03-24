@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE
 #include "fonctions_sys.h"
 
 
@@ -5,7 +6,6 @@ int creerSemaphores(int CLE_S) {
     int semid;
 
     if((semid = semget((key_t)CLE_S, MAX_PARTIE, S_IRUSR | S_IWUSR | IPC_CREAT | IPC_EXCL)) == -1) {
-        ncurses_stopper();
         if(errno == EEXIST)
             fprintf(stderr, "Le tableau de sémaphores (cle=%d) existe déjà.\n", CLE_S);
         else
@@ -21,7 +21,7 @@ int supprimerSemaphores(int semid) {
         exit(EXIT_FAILURE);
     }
 
-    printw("Tableau de sémaphores supprimé.\n");
+    fprintf(stdin, "Tableau de sémaphores supprimé.\n");
     return EXIT_SUCCESS;
 }
 int recupererSemaphores(int CLE_S) {
@@ -47,7 +47,6 @@ void Peux(int sem, int semid) {
     op.sem_op = -1;
     op.sem_flg = 0;
     if(semop(semid, &op, 1) == -1) {
-        ncurses_stopper();
         fprintf(stderr, "Erreur lors de l'opération sur le sémaphore Peux\n");
         exit(EXIT_FAILURE);
     }
@@ -67,7 +66,6 @@ void Vas(int sem, int semid) {
     op.sem_op = 1;
     op.sem_flg = 0;
     if(semop(semid, &op, 1) == -1) {
-        ncurses_stopper();
         fprintf(stderr, "Erreur lors de l'opération sur le sémaphore Vas\n");
         exit(EXIT_FAILURE);
     }

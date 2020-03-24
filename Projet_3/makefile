@@ -3,7 +3,7 @@
 #
 
 EXEC = serveur joueur
-OBJETS = 
+OBJETS = fonctions_sys.o
 NOM_PROJET = projet3
 
 #
@@ -80,6 +80,7 @@ archive: clean
 	@echo "Termine."
 
 # DEPENDANCES
-serveur.o: serveur.c struct_message.h
-joueur.o: joueur.c struct_message.h
+fonctions_sys.o:fonctions_sys.c fonctions_sys.h struct_message.h
+serveur.o: serveur.c struct_message.h fonctions_sys.h
+joueur.o: joueur.c struct_message.h fonctions_sys.h
 

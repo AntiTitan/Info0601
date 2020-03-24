@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE
 #ifndef STRUCT_OBJETS_H
 #define STRUCT_OBJETS_H
 

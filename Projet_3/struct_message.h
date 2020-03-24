@@ -60,6 +60,11 @@ typedef struct message{
     objet_t objet;
 }message_t;
 
+typedef struct couple{
+    int numPort;
+    int numPartie;
+} configTCP_t;
+
 
 
 

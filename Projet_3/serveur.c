@@ -14,13 +14,13 @@ void stopServeur(int sig){
 
 void* pthreadTCP(void* args) {
 
-	int paraThread [2];
+	int * paraThread;
     struct sockaddr_in adresseTCP;
     int fdTCP,j,trouve;
     int sockClient [2]={0,0};
     message_t msg;
-    paraThread[0]= args[0];
-    paraThread[1]= ((int)args[1]);
+    paraThread= (int*)args;
+    
     /* Création de la socket TCP */
     if((fdTCP = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
         perror("Erreur lors de la création de la socket ");
@@ -202,7 +202,7 @@ int main (int argc, char * argv []){
             /*création d'un thread avec le numéro de port de adresseServeurTCP à cet instant*/   
             paraThread[0]=port;
             paraThread[1]=numPort-1;
-            statut= pthread_create(&threadTCP, NULL, pthreadTCP,(void *)paraThread);
+            statut= pthread_create(&threadTCP, NULL, pthreadTCP,(void *)&paraThread);
             if(statut!=0){
                 printf("Pb création thread\n");
             }
