@@ -61,9 +61,9 @@ typedef struct message{
 }message_t;
 
 typedef struct couple{
-    int numPort;
-    int numPartie;
-} configTCP_t;
+    int vide;
+    struct sockaddr_in adr;
+} reponseUDP_t;
 
 
 

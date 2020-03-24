@@ -57,6 +57,11 @@ clean:
 	@rm -f dependances
 	@echo "Termine."
 
+cleanIPC:
+	@echo "Suppression du tableau de sémaphores..."
+	@ipcrm -Q $(CLE_SEM)
+	@echo "Sémaphores supprimés."
+
 depend:
 	@echo "Creation des dependances..."
 	@sed -e "/^# DEPENDANCES/,$$ d" makefile > dependances

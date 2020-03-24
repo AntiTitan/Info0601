@@ -87,7 +87,6 @@ int main (int argc, char * argv []){
     socklen_t taille;
     int sockfdUDP, fdTCP;
     struct sockaddr_in adresseServeurUDP,adresseServeurTCP;
-    struct sockaddr_in adresseClientUDP/*,adresseClientTCP*/;
     message_t reqUDP,repUDP;
 
     pthread_t threadTCP;
@@ -95,7 +94,11 @@ int main (int argc, char * argv []){
     int paraThread [2];
     void* res;
     unsigned short val[MAX_PARTIE];/*tableau d'initialisation des sem*/
-    int i;
+    int i,j;
+
+    int nombreJoueurs=0,j1=0,j2=0,trouve=0;
+    reponseUDP_t adresseClientUDP [MAX_JOUEURS];
+
 /*vérification des arguments
     adresse IP
     numéro de port UDP sur lequel il va attendre les clients
@@ -113,6 +116,11 @@ int main (int argc, char * argv []){
     largeur = atoi(argv[3]);
     hauteur = atoi(argv[4]);
     largeur ++;hauteur++;
+
+    for(j=0;j<MAX_JOUEURS;j++){
+        adresseClientUDP[j].vide=0;
+        memset(&adresseClientUDP[j].adr, 0, sizeof(struct sockaddr_in));
+    }
 
     action.sa_handler = stopServeur;
     sigemptyset(&action.sa_mask);
@@ -164,55 +172,92 @@ int main (int argc, char * argv []){
         exit(EXIT_FAILURE);
     }
     
+    taille=sizeof(struct sockaddr_in);
 
         /* Attente des clients */
     while(boucle){
         /* Attente de la requête du client UDP */
         printf("Serveur en attente du message du client.\n");
-        taille=sizeof(struct sockaddr_in);
-        if(recvfrom(sockfdUDP, &reqUDP, sizeof(message_t), 0,(struct sockaddr*)&adresseClientUDP, &taille) == -1) {
+        
+        if(recvfrom(sockfdUDP, &reqUDP, sizeof(message_t), 0,(struct sockaddr*)&adresseClientUDP[nombreJoueurs].adr, &taille) == -1) {
             perror("Erreur lors de la réception du message ");
             exit(EXIT_FAILURE);
         }
         printf("Serveur : requete UDP reçue.\n");
-
+        adresseClientUDP[nombreJoueurs].vide=1;
         if(reqUDP.typeMessage != CO_UDP_CS){
             printf("Problème dans la réception\n Pas le bon type de message\n");
             printf("Requete igonrée\n");
         }
         else{
-            /* Envoi du message UDP */
-            repUDP.typeMessage = INFO_TCP_SC;
-            
-            /* Création de l'adresse du serveur */
-            memset(&adresseServeurTCP, 0, sizeof(struct sockaddr_in));
-            adresseServeurTCP.sin_family = AF_INET;
-            adresseServeurTCP.sin_addr.s_addr = htonl(atoi(argv[1]));
-            port =atoi(argv[2])+numPort;
-            adresseServeurTCP.sin_port = htons(port);
-            
-            repUDP.adresse = adresseServeurTCP;
-            repUDP.idPartie=numPort-1;
-            if(sendto(sockfdUDP, &repUDP, sizeof(message_t), 0, (struct sockaddr*)&adresseClientUDP, sizeof(struct sockaddr_in)) == -1) {
-                perror("Erreur lors de l'envoi du message ");
-                exit(EXIT_FAILURE);
-            }
-            printf("Serveur : message envoyé.\n"); 
+            if(nombreJoueurs > 0 && nombreJoueurs%2==0){
+                /*On associe deux jouers ensemble*/
+                j1=0;
+                j2=0;
+                trouve =0;
+                while(!trouve && (j1<MAX_JOUEURS && j2 < MAX_JOUEURS)){
+                    if(adresseClientUDP[j1].vide != 0){
+                        if(j2 != 0){
+                            trouve =1;
+                        }
+                        else{
+                            j2=j1;
+                        }
+                        
+                    }
+                    else{
+                        j1++;
+                    }
+                }
+                /* Envoi du message UDP */
+                repUDP.typeMessage = INFO_TCP_SC;
+                
+                /* Création de l'adresse du serveur */
+                memset(&adresseServeurTCP, 0, sizeof(struct sockaddr_in));
+                adresseServeurTCP.sin_family = AF_INET;
+                adresseServeurTCP.sin_addr.s_addr = htonl(atoi(argv[1]));
+                port =atoi(argv[2])+numPort;
+                adresseServeurTCP.sin_port = htons(port);
+                
+                repUDP.adresse = adresseServeurTCP;
+                repUDP.idPartie=port-1;
+                if(sendto(sockfdUDP, &repUDP, sizeof(message_t), 0, (struct sockaddr*)&adresseClientUDP[j1].adr, sizeof(struct sockaddr_in)) == -1) {
+                    perror("Erreur lors de l'envoi du message ");
+                    exit(EXIT_FAILURE);
+                }
+                printf("Serveur : message envoyé à j1.\n"); 
+                if(sendto(sockfdUDP, &repUDP, sizeof(message_t), 0, (struct sockaddr*)&adresseClientUDP[j2].adr, sizeof(struct sockaddr_in)) == -1) {
+                    perror("Erreur lors de l'envoi du message ");
+                    exit(EXIT_FAILURE);
+                }
+                printf("Serveur : message envoyé à j2.\n"); 
 
-            /*création d'un thread avec le numéro de port de adresseServeurTCP à cet instant*/   
-            paraThread[0]=port;
-            paraThread[1]=numPort-1;
-            statut= pthread_create(&threadTCP, NULL, pthreadTCP,(void *)&paraThread);
-            if(statut!=0){
-                printf("Pb création thread\n");
+                /*On supprime les deux adresses j1 et j2*/
+                adresseClientUDP[j1].vide=0;
+                adresseClientUDP[j2].vide=0;
+                memset(&adresseClientUDP[j1].adr, 0, sizeof(struct sockaddr_in));
+                memset(&adresseClientUDP[j2].adr, 0, sizeof(struct sockaddr_in));
+
+                /*création d'un thread avec le numéro de port de adresseServeurTCP à cet instant*/   
+                paraThread[0]=port;
+                paraThread[1]=numPort-1;
+                statut= pthread_create(&threadTCP, NULL, pthreadTCP,(void *)&paraThread);
+                if(statut!=0){
+                    printf("Pb création thread\n");
+                }
+                if(pair){
+                    numPort ++;
+                    pair =0;
+                }
+                else{
+                    pair =1;
+                }
+                nombreJoueurs++;
             }
-            if(pair){
-                numPort ++;
-                pair =0;
-            }
-            else{
-                pair =1;
-            }
+            
+
+            
+
             
         }
         
