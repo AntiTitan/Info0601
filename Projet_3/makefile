@@ -22,9 +22,9 @@ OBJETS_O = $(OBJETS) $(EXEC_O)
 #
 # ARGUMENTS ET COMPILATEUR
 #
-
+CLE = 1056
 CC = gcc -g -pthread
-CCFLAGS = -Wall -O3 -ansi -pedantic -Werror
+CCFLAGS = -Wall -O3 -ansi -pedantic -Werror -D CLE_SEM=$(CLE)
 CCLIBS =
 
 #

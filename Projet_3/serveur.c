@@ -1,20 +1,11 @@
 #define _XOPEN_SOURCE
 /*include*/
-#include <stdlib.h>      /* Pour exit, EXIT_FAILURE, EXIT_SUCCESS */
-#include <stdio.h>       /* Pour printf, fprintf, perror */
-#include <sys/socket.h>  /* Pour socket, bind */
-#include <arpa/inet.h>   /* Pour sockaddr_in */
-#include <string.h>      /* Pour memset */
-#include <unistd.h>      /* Pour close */
-#include <errno.h>       /* Pour errno */
-#include <signal.h>    /* Pour sigaction */
-#include <pthread.h>
-#include <sys/stat.h>   /* Pour S_IRUSR, S_IWUSR */
 
+#include "fonctions_sys.h"
 #include "struct_message.h"
 
 int boucle=1;
-
+int semid;
 void stopServeur(int sig){
     if(sig== SIGINT){
         boucle=0;
@@ -23,7 +14,7 @@ void stopServeur(int sig){
 
 void* pthreadTCP(void* args) {
 
-	int numPort = *(int*)args;
+	int paraThread [2] = *(int*)args;
     struct sockaddr_in adresseTCP;
     int fdTCP,j,trouve;
     int sockClient [2]={0,0};
@@ -38,7 +29,7 @@ void* pthreadTCP(void* args) {
     memset(&adresseTCP, 0, sizeof(struct sockaddr_in));
     adresseTCP.sin_family = AF_INET;
     adresseTCP.sin_addr.s_addr = htonl(INADDR_ANY);
-    adresseTCP.sin_port = htons(numPort);
+    adresseTCP.sin_port = htons(paraThread[0]);
 
     /* Nommage de la socket */
     if(bind(fdTCP, (struct sockaddr*)&adresseTCP, sizeof(struct sockaddr_in)) == -1) {
@@ -51,7 +42,7 @@ void* pthreadTCP(void* args) {
         perror("Erreur lors de la mise en mode passif ");
         exit(EXIT_FAILURE);
     }
-
+    Vas(semid,paraThread[1]);
     while(boucle){
         j=0;
         trouve=0;
@@ -91,7 +82,7 @@ int main (int argc, char * argv []){
 /*déclarations*/
     struct sigaction action;
 
-    int hauteur, largeur,numPort=1,pair=0,port[1];
+    int hauteur, largeur,numPort=1,pair=0,port;
     socklen_t taille;
     int sockfdUDP, fdTCP;
     struct sockaddr_in adresseServeurUDP,adresseServeurTCP;
@@ -100,8 +91,10 @@ int main (int argc, char * argv []){
 
     pthread_t threadTCP;
     int statut;
+    int paraThread [2];
     void* res;
-
+    unsigned short val[MAX_PARTIE];/*tableau d'initialisation des sem*/
+    int i;
 /*vérification des arguments
     adresse IP
     numéro de port UDP sur lequel il va attendre les clients
@@ -125,6 +118,22 @@ int main (int argc, char * argv []){
     action.sa_flags = 0;
     if(sigaction(SIGINT, &action, NULL) == -1) {
         fprintf(stderr, "Erreur lors du positionnement\n");
+        exit(EXIT_FAILURE);
+    }
+
+/*Création tableau sémaphore pour la connexion*/
+
+    semid = creerSemaphores(CLE_S);
+
+    /* Initialisation du tab d'initialisation des sem*/
+    for (i=0; i<MAX_PARTIE; i++) {
+        val[i] = 1;
+    }
+
+    /* Initialisation des sémaphores */
+    if(semctl(semid, 0, SETALL, val) == -1) {
+        ncurses_stopper();
+        fprintf(stderr, "Erreur lors de l'initialisation des sémaphores\n");
         exit(EXIT_FAILURE);
     }
 
@@ -179,11 +188,11 @@ int main (int argc, char * argv []){
             memset(&adresseServeurTCP, 0, sizeof(struct sockaddr_in));
             adresseServeurTCP.sin_family = AF_INET;
             adresseServeurTCP.sin_addr.s_addr = htonl(atoi(argv[1]));
-            *port =atoi(argv[2])+numPort;
+            port =atoi(argv[2])+numPort;
             adresseServeurTCP.sin_port = htons(port);
             
             repUDP.adresse = adresseServeurTCP;
-
+            repUDP.idPartie=numPort-1;
             if(sendto(sockfdUDP, &repUDP, sizeof(message_t), 0, (struct sockaddr*)&adresseClientUDP, sizeof(struct sockaddr_in)) == -1) {
                 perror("Erreur lors de l'envoi du message ");
                 exit(EXIT_FAILURE);
@@ -191,7 +200,9 @@ int main (int argc, char * argv []){
             printf("Serveur : message envoyé.\n"); 
 
             /*création d'un thread avec le numéro de port de adresseServeurTCP à cet instant*/   
-            statut= pthread_create(&threadTCP, NULL, pthreadTCP,port);
+            paraThread[0]=port;
+            paraThread[1]=numPort-1;
+            statut= pthread_create(&threadTCP, NULL, pthreadTCP,paraThread);
             if(statut!=0){
                 printf("Pb création thread\n");
             }

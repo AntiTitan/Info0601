@@ -8,6 +8,7 @@
 #include <errno.h>       /* Pour errno */
 
 #include "struct_message.h"
+#include "fonctions_sys.h"
 
 
 int main (int argc, char * argv []){
@@ -18,6 +19,7 @@ int main (int argc, char * argv []){
     struct sockaddr_in adresseServeurUDP , adresseServeurTCP;
     message_t reqUDP,repUDP;
     message_t reqTCP,repTCP;
+    int numPartie,semid;
 
 /*vérification des arguments
     adresse IP
@@ -32,7 +34,7 @@ int main (int argc, char * argv []){
         exit(EXIT_FAILURE);
     }
     reqUDP.typeMessage = CO_UDP_CS;
-
+    semid=recupererSemaphores(CLE_SEM);
 /*connexion au serveur en UDP*/
 
         /* Création de la socket UDP */
@@ -70,7 +72,7 @@ int main (int argc, char * argv []){
         printf("Info TCP reçues\n");
     }
     adresseServeurTCP = repUDP.adresse;
-
+    numPartie= repUDP.idPartie;
         /* Création de la socket TCP */
     if((sockfdTCP = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
         perror("Erreur lors de la création de la socket ");
@@ -83,7 +85,7 @@ int main (int argc, char * argv []){
     }
     
 /*connexion au serveur en TCP*/
-
+    Peux(semid,numPartie);
         /* Connexion au serveur */
     if(connect(sockfdTCP, (struct sockaddr*)&adresseServeurTCP, sizeof(adresseServeurTCP)) == -1) {
         perror("Erreur lors de la connexion ");

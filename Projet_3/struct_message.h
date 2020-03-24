@@ -43,6 +43,10 @@
 /* données du jeu SC */
 #define GAME 13
 
+
+#define MAX_PARTIE 5
+#define MAX_JOUEURS MAX_PARTIE/2
+
 /*struct*/
 
 /**** soit une seule struct pour tous les messages******/
@@ -52,6 +56,7 @@ typedef struct message{
     struct sockaddr_in adresse;
     int position [2];/* position de la ligne ou des poissons*/
     int idJoueur;
+    int idPartie;
     objet_t objet;
 }message_t;
 
