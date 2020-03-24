@@ -14,12 +14,13 @@ void stopServeur(int sig){
 
 void* pthreadTCP(void* args) {
 
-	int paraThread [2] = *(int*)args;
+	int paraThread [2];
     struct sockaddr_in adresseTCP;
     int fdTCP,j,trouve;
     int sockClient [2]={0,0};
     message_t msg;
-
+    paraThread[0]= args[0];
+    paraThread[1]= ((int)args[1]);
     /* Création de la socket TCP */
     if((fdTCP = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
         perror("Erreur lors de la création de la socket ");
@@ -123,7 +124,7 @@ int main (int argc, char * argv []){
 
 /*Création tableau sémaphore pour la connexion*/
 
-    semid = creerSemaphores(CLE_S);
+    semid = creerSemaphores(CLE_SEM);
 
     /* Initialisation du tab d'initialisation des sem*/
     for (i=0; i<MAX_PARTIE; i++) {
@@ -132,7 +133,6 @@ int main (int argc, char * argv []){
 
     /* Initialisation des sémaphores */
     if(semctl(semid, 0, SETALL, val) == -1) {
-        ncurses_stopper();
         fprintf(stderr, "Erreur lors de l'initialisation des sémaphores\n");
         exit(EXIT_FAILURE);
     }
@@ -202,7 +202,7 @@ int main (int argc, char * argv []){
             /*création d'un thread avec le numéro de port de adresseServeurTCP à cet instant*/   
             paraThread[0]=port;
             paraThread[1]=numPort-1;
-            statut= pthread_create(&threadTCP, NULL, pthreadTCP,paraThread);
+            statut= pthread_create(&threadTCP, NULL, pthreadTCP,(void *)paraThread);
             if(statut!=0){
                 printf("Pb création thread\n");
             }
