@@ -49,6 +49,7 @@ void Peux(int sem, int semid) {
     op.sem_flg = 0;
     if(semop(semid, &op, 1) == -1) {
         fprintf(stderr, "Erreur lors de l'opération sur le sémaphore Peux(%d)\n", sem);
+        perror("semop P");
         exit(EXIT_FAILURE);
     }
 }
@@ -68,6 +69,32 @@ void Vas(int sem, int semid) {
     op.sem_flg = 0;
     if(semop(semid, &op, 1) == -1) {
         fprintf(stderr, "Erreur lors de l'opération sur le sémaphore Vas(%d)\n", sem);
+        
+        switch(errno){
+            case E2BIG : fprintf(stderr, "E2BIG\n");break;
+
+            case EACCES : fprintf(stderr, "EACCES\n");break;
+
+            case EAGAIN : fprintf(stderr, "EAGAIN\n");break;
+
+            case EFAULT : fprintf(stderr, "EFAULT\n");break;
+
+            case EFBIG : fprintf(stderr, "EFBIG\n");break;
+
+            case EIDRM : fprintf(stderr, "EIDRM\n");break;
+
+            case EINTR  : fprintf(stderr, "EINTR\n");break;
+
+            case EINVAL : fprintf(stderr, "EINVAL\n");break;
+
+            case ENOMEM : fprintf(stderr, "ENOMEM\n");break;
+
+            case  ERANGE: fprintf(stderr, "ERANGE\n");break;
+
+            default: fprintf(stderr,"Chai pas\n");break;
+        }
+        perror("semop V");
+
         exit(EXIT_FAILURE);
     }
     

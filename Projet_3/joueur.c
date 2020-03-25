@@ -86,7 +86,7 @@ int main (int argc, char * argv []){
     }
     
 /*connexion au serveur en TCP*/
-    Peux(semid,numPartie);
+    Peux(numPartie,semid);
         /* Connexion au serveur */
     if(connect(sockfdTCP, (struct sockaddr*)&adresseServeurTCP, sizeof(adresseServeurTCP)) == -1) {
         perror("Erreur lors de la connexion ");

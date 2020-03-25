@@ -59,7 +59,7 @@ void* pthreadTCP(void* args) {
         perror("Erreur lors de la mise en mode passif ");
         exit(EXIT_FAILURE);
     }
-    Vas(semid,paraThread[1]);
+    Vas(paraThread[1],semid);
     j=0;
     while(sockClient[0]==0 && sockClient[1]==0){
         /* Attente d'une connexion */
