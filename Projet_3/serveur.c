@@ -101,7 +101,7 @@ int main (int argc, char * argv []){
     unsigned short val[MAX_PARTIE];/*tableau d'initialisation des sem*/
     int i,j;
 
-    int nombreJoueurs=0,j1=0,j2=0,trouve=0;
+    int nombreJoueurs=0,j1=0,j2=0,trouve=0,nombrePartie=-1;
     reponseUDP_t adresseClientUDP [MAX_JOUEURS];
 
 /*vérification des arguments
@@ -210,6 +210,7 @@ int main (int argc, char * argv []){
                             j1++;
                         }
                     }
+                    nombrePartie++;
                     /* Envoi du message UDP */
                     repUDP.typeMessage = INFO_TCP_SC;
                     
@@ -221,7 +222,7 @@ int main (int argc, char * argv []){
                     adresseServeurTCP.sin_port = htons(port);
                     
                     repUDP.adresse = adresseServeurTCP;
-                    repUDP.idPartie=port-1;
+                    repUDP.idPartie= nombrePartie;
                     if(sendto(sockfdUDP, &repUDP, sizeof(message_t), 0, (struct sockaddr*)&adresseClientUDP[j1].adr, sizeof(adresseClientUDP[j1].adr)) == -1) {
                         perror("Erreur lors de l'envoi du message j1");
                         exit(EXIT_FAILURE);
