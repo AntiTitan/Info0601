@@ -14,6 +14,7 @@ pthread_t threadTCP[MAX_PARTIE];
 void stopServeur(int sig){
     void * res;
     int j;
+
     if(sig== SIGINT){
         boucle=0;
         supprimerSemaphores(semid);
@@ -29,7 +30,7 @@ void stopServeur(int sig){
 
 void* pthreadTCP(void* args) {
 
-	int * paraThread;
+	int* paraThread;
     struct sockaddr_in adresseTCP;
     int j;
     int sockClient [2]={0,0};

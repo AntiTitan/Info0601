@@ -12,16 +12,16 @@
 
 /*define */
 
-#define VIDE 0
-#define POISSON 1
-#define REQUIN 2
-#define DYNAMITE 3
-#define PNEU 4
-#define LIGNE 5
+#define VIDE      0
+#define POISSON   1
+#define REQUIN    2
+#define DYNAMITE  3
+#define PNEU      4
+#define LIGNE     5
 
-#define POISSON1 1
-#define POISSON2 2
-#define POISSON3 3
+#define POISSON1  1
+#define POISSON2  2
+#define POISSON3  3
 
 /*struct*/
 

@@ -15,41 +15,41 @@
 /* SC -> du serveur au client : reçu uniquement par le client*/
 
 /* connexion UDP CS*/
-#define CO_UDP_CS 0
+#define CO_UDP_CS    0
 /* connexion TCP CS*/
-#define CO_TCP_CS 1
+#define CO_TCP_CS    1
 /* info TCP SC*/
 #define INFO_TCP_SC  2
 /* création poisson SC*/
-#define C_POIS 3
+#define C_POIS       3
 /* fin poisson SC*/
-#define F_POIS 4
+#define F_POIS       4
 /* mouvement poisson SC*/
-#define M_POIS 5
+#define M_POIS       5
 /* pose de ligne CS*/
-#define P_LIGNE 6
+#define P_LIGNE      6
 /* relevé de ligne CS */
-#define R_LIGNE 7
+#define R_LIGNE      7
 /* resultat de la pêche SC */
-#define PRISE 8
+#define PRISE        8
 /* passage en mode furtif CS */
-#define FURTIF_ON 9
+#define FURTIF_ON    9
 /* fin mode furtif SC */
-#define FURTIF_OFF 10
+#define FURTIF_OFF   10
 /* partie gagnée CS */
-#define WIN_GAME 11
+#define WIN_GAME     11
 /* fin du jeu SC */
-#define ENDGAME 12
+#define ENDGAME      12
 /* données du jeu SC */
-#define GAME 13
+#define GAME         13
 
 
 #define MAX_PARTIE 5
-#define MAX_JOUEURS MAX_PARTIE/2
+#define MAX_JOUEURS MAX_PARTIE*2 /*2 joueurs par parties*/
 
 /*struct*/
 
-/**** soit une seule struct pour tous les messages******/
+/**** soit une seule struct pour tous les messages ****/
 
 typedef struct message{
     int typeMessage;

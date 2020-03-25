@@ -13,9 +13,9 @@
 #include <string.h>      /* Pour memset */
 #include <unistd.h>      /* Pour close */
 #include <errno.h>       /* Pour errno */
-#include <signal.h>    /* Pour sigaction */
+#include <signal.h>      /* Pour sigaction */
 #include <pthread.h>
-#include <sys/stat.h>   /* Pour S_IRUSR, S_IWUSR */
+#include <sys/stat.h>    /* Pour S_IRUSR, S_IWUSR */
 
 #include "struct_message.h"
 

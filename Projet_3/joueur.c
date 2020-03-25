@@ -35,7 +35,7 @@ int main (int argc, char * argv []){
         exit(EXIT_FAILURE);
     }
     reqUDP.typeMessage = CO_UDP_CS;
-    semid=recupererSemaphores(CLE_SEM);
+    semid = recupererSemaphores(CLE_SEM);
 /*connexion au serveur en UDP*/
 
         /* Création de la socket UDP */

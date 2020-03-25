@@ -24,6 +24,7 @@ int supprimerSemaphores(int semid) {
     fprintf(stdin, "Tableau de sémaphores supprimé.\n");
     return EXIT_SUCCESS;
 }
+
 int recupererSemaphores(int CLE_S) {
     int semid;
     if((semid = semget((key_t)CLE_S, 0, 0)) == -1) {
@@ -47,7 +48,7 @@ void Peux(int sem, int semid) {
     op.sem_op = -1;
     op.sem_flg = 0;
     if(semop(semid, &op, 1) == -1) {
-        fprintf(stderr, "Erreur lors de l'opération sur le sémaphore Peux\n");
+        fprintf(stderr, "Erreur lors de l'opération sur le sémaphore Peux(%d)\n", sem);
         exit(EXIT_FAILURE);
     }
 }
@@ -66,7 +67,7 @@ void Vas(int sem, int semid) {
     op.sem_op = 1;
     op.sem_flg = 0;
     if(semop(semid, &op, 1) == -1) {
-        fprintf(stderr, "Erreur lors de l'opération sur le sémaphore Vas\n");
+        fprintf(stderr, "Erreur lors de l'opération sur le sémaphore Vas(%d)\n", sem);
         exit(EXIT_FAILURE);
     }
     
