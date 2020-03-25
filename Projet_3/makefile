@@ -59,7 +59,7 @@ clean:
 
 cleanIPC:
 	@echo "Suppression du tableau de sémaphores..."
-	@ipcrm -Q $(CLE_SEM)
+	@ipcrm -S $(CLE)
 	@echo "Sémaphores supprimés."
 
 depend:

@@ -6,9 +6,24 @@
 
 int boucle=1;
 int semid;
+int sockfdUDP;
+int fdTCP;
+
+pthread_t threadTCP[MAX_PARTIE];
+
 void stopServeur(int sig){
+    void * res;
+    int j;
     if(sig== SIGINT){
         boucle=0;
+        supprimerSemaphores(semid);
+        if(close(sockfdUDP) == -1) {
+            perror("Erreur lors de la fermeture de la socket ");
+            exit(EXIT_FAILURE);
+        }
+        for(j=0;j<MAX_PARTIE;j++){
+            pthread_join(threadTCP[j],&res);
+        }
     }
 }
 
@@ -16,7 +31,7 @@ void* pthreadTCP(void* args) {
 
 	int * paraThread;
     struct sockaddr_in adresseTCP;
-    int fdTCP,j,trouve;
+    int j;
     int sockClient [2]={0,0};
     message_t msg;
     paraThread= (int*)args;
@@ -44,17 +59,8 @@ void* pthreadTCP(void* args) {
         exit(EXIT_FAILURE);
     }
     Vas(semid,paraThread[1]);
-    while(boucle){
-        j=0;
-        trouve=0;
-        while(!trouve && j<5){
-            if(sockClient[j]!=0){
-                j++;
-            }
-            else{
-                trouve=1;
-            }
-        }
+    j=0;
+    while(sockClient[0]==0 && sockClient[1]==0){
         /* Attente d'une connexion */
         printf("Serveur : attente de connexion...\n");
         if((sockClient[j] = accept(fdTCP, NULL, NULL)) == -1) {
@@ -69,11 +75,12 @@ void* pthreadTCP(void* args) {
             printf("TCP réussi\n");
         }
         msg.typeMessage = GAME;
-        printf("Serveur TCP: message recu.\n");
+        printf("Serveur TCP: message recu.\nCreation de partie\n");
         if(write(sockClient[j], &msg , sizeof(message_t)) == -1) {
             perror("Erreur lors de l'envoi du message ");
             exit(EXIT_FAILURE);
         }
+        j++;
     }
     return NULL;
 }
@@ -85,11 +92,8 @@ int main (int argc, char * argv []){
 
     int hauteur, largeur,numPort=1,pair=0,port;
     socklen_t taille;
-    int sockfdUDP, fdTCP;
     struct sockaddr_in adresseServeurUDP,adresseServeurTCP;
     message_t reqUDP,repUDP;
-
-    pthread_t threadTCP;
     int statut;
     int paraThread [2];
     void* res;
@@ -165,12 +169,6 @@ int main (int argc, char * argv []){
         perror("Erreur lors du nommage de la socket ");
         exit(EXIT_FAILURE);
     }
-
-        /* Création de la socket TCP */
-    if((fdTCP = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
-        perror("Erreur lors de la création de la socket ");
-        exit(EXIT_FAILURE);
-    }
     
     taille=sizeof(struct sockaddr_in);
 
@@ -178,92 +176,90 @@ int main (int argc, char * argv []){
     while(boucle){
         /* Attente de la requête du client UDP */
         printf("Serveur en attente du message du client.\n");
-        
-        if(recvfrom(sockfdUDP, &reqUDP, sizeof(message_t), 0,(struct sockaddr*)&adresseClientUDP[nombreJoueurs].adr, &taille) == -1) {
-            perror("Erreur lors de la réception du message ");
-            exit(EXIT_FAILURE);
-        }
-        printf("Serveur : requete UDP reçue.\n");
-        adresseClientUDP[nombreJoueurs].vide=1;
-        if(reqUDP.typeMessage != CO_UDP_CS){
-            printf("Problème dans la réception\n Pas le bon type de message\n");
-            printf("Requete igonrée\n");
-        }
-        else{
-            if(nombreJoueurs > 0 && nombreJoueurs%2==0){
-                /*On associe deux jouers ensemble*/
-                j1=0;
-                j2=0;
-                trouve =0;
-                while(!trouve && (j1<MAX_JOUEURS && j2 < MAX_JOUEURS)){
-                    if(adresseClientUDP[j1].vide != 0){
-                        if(j2 != 0){
-                            trouve =1;
+        if(nombreJoueurs<10){
+            if(recvfrom(sockfdUDP, &reqUDP, sizeof(message_t), 0,(struct sockaddr*)&adresseClientUDP[nombreJoueurs].adr, &taille) == -1) {
+                perror("Erreur lors de la réception du message ");
+                exit(EXIT_FAILURE);
+            }
+            printf("Serveur : requete UDP reçue.\n");
+            if(reqUDP.typeMessage != CO_UDP_CS){
+                printf("Problème dans la réception\n Pas le bon type de message\n");
+                printf("Requete igonrée\n");
+            }
+            else{
+                adresseClientUDP[nombreJoueurs].vide=1;
+                nombreJoueurs++;
+                printf("nb joueurs %d\n",nombreJoueurs);
+                if(nombreJoueurs > 0 && nombreJoueurs%2==0){
+                    /*On associe deux joueurs ensemble*/
+                    j1=0;
+                    j2=-1;
+                    trouve =0;
+                    while(!trouve && (j1<MAX_JOUEURS && j2 < MAX_JOUEURS)){
+                        if(adresseClientUDP[j1].vide == 1){
+                            if(j2 != -1){
+                                trouve =1;
+                            }
+                            else{
+                                j2=j1;
+                                j1++;
+                            }
                         }
                         else{
-                            j2=j1;
+                            j1++;
                         }
-                        
+                    }
+                    /* Envoi du message UDP */
+                    repUDP.typeMessage = INFO_TCP_SC;
+                    
+                    /* Création de l'adresse du serveur */
+                    memset(&adresseServeurTCP, 0, sizeof(struct sockaddr_in));
+                    adresseServeurTCP.sin_family = AF_INET;
+                    adresseServeurTCP.sin_addr.s_addr = htonl(atoi(argv[1]));
+                    port =atoi(argv[2])+numPort;
+                    adresseServeurTCP.sin_port = htons(port);
+                    
+                    repUDP.adresse = adresseServeurTCP;
+                    repUDP.idPartie=port-1;
+                    if(sendto(sockfdUDP, &repUDP, sizeof(message_t), 0, (struct sockaddr*)&adresseClientUDP[j1].adr, sizeof(adresseClientUDP[j1].adr)) == -1) {
+                        perror("Erreur lors de l'envoi du message j1");
+                        exit(EXIT_FAILURE);
+                    }
+                    printf("Serveur : message envoyé à j1.\n"); 
+                    if(sendto(sockfdUDP, &repUDP, sizeof(message_t), 0, (struct sockaddr*)&adresseClientUDP[j2].adr, sizeof(adresseClientUDP[j2].adr)) == -1) {
+                        perror("Erreur lors de l'envoi du message j2");
+                        exit(EXIT_FAILURE);
+                    }
+                    printf("Serveur : message envoyé à j2.\n"); 
+
+                    /*On supprime les deux adresses j1 et j2*/
+                    adresseClientUDP[j1].vide=0;
+                    adresseClientUDP[j2].vide=0;
+                    memset(&adresseClientUDP[j1].adr, 0, sizeof(struct sockaddr_in));
+                    memset(&adresseClientUDP[j2].adr, 0, sizeof(struct sockaddr_in));
+
+                    /*création d'un thread avec le numéro de port de adresseServeurTCP à cet instant*/   
+                    paraThread[0]=port;
+                    paraThread[1]=numPort-1;
+                    statut= pthread_create(&threadTCP[nombreJoueurs/2-1], NULL, pthreadTCP,(void *)&paraThread);
+                    if(statut!=0){
+                        printf("Pb création thread\n");
+                    }
+                    if(pair){
+                        numPort ++;
+                        pair =0;
                     }
                     else{
-                        j1++;
+                        pair =1;
                     }
                 }
-                /* Envoi du message UDP */
-                repUDP.typeMessage = INFO_TCP_SC;
-                
-                /* Création de l'adresse du serveur */
-                memset(&adresseServeurTCP, 0, sizeof(struct sockaddr_in));
-                adresseServeurTCP.sin_family = AF_INET;
-                adresseServeurTCP.sin_addr.s_addr = htonl(atoi(argv[1]));
-                port =atoi(argv[2])+numPort;
-                adresseServeurTCP.sin_port = htons(port);
-                
-                repUDP.adresse = adresseServeurTCP;
-                repUDP.idPartie=port-1;
-                if(sendto(sockfdUDP, &repUDP, sizeof(message_t), 0, (struct sockaddr*)&adresseClientUDP[j1].adr, sizeof(struct sockaddr_in)) == -1) {
-                    perror("Erreur lors de l'envoi du message ");
-                    exit(EXIT_FAILURE);
-                }
-                printf("Serveur : message envoyé à j1.\n"); 
-                if(sendto(sockfdUDP, &repUDP, sizeof(message_t), 0, (struct sockaddr*)&adresseClientUDP[j2].adr, sizeof(struct sockaddr_in)) == -1) {
-                    perror("Erreur lors de l'envoi du message ");
-                    exit(EXIT_FAILURE);
-                }
-                printf("Serveur : message envoyé à j2.\n"); 
-
-                /*On supprime les deux adresses j1 et j2*/
-                adresseClientUDP[j1].vide=0;
-                adresseClientUDP[j2].vide=0;
-                memset(&adresseClientUDP[j1].adr, 0, sizeof(struct sockaddr_in));
-                memset(&adresseClientUDP[j2].adr, 0, sizeof(struct sockaddr_in));
-
-                /*création d'un thread avec le numéro de port de adresseServeurTCP à cet instant*/   
-                paraThread[0]=port;
-                paraThread[1]=numPort-1;
-                statut= pthread_create(&threadTCP, NULL, pthreadTCP,(void *)&paraThread);
-                if(statut!=0){
-                    printf("Pb création thread\n");
-                }
-                if(pair){
-                    numPort ++;
-                    pair =0;
-                }
-                else{
-                    pair =1;
-                }
-                nombreJoueurs++;
             }
-            
-
-            
-
-            
         }
         
     }
-    pthread_join(threadTCP,&res);
-    
+    for(j=0;j<MAX_PARTIE;j++){
+        pthread_join(threadTCP[j],&res);
+    }
 /*envoi aux client des informations TCP*/
 
 /*création de la grille et début partie*/
@@ -282,5 +278,6 @@ int main (int argc, char * argv []){
         perror("Erreur lors de la fermeture de la socket ");
         exit(EXIT_FAILURE);
     }
+        
     return EXIT_SUCCESS;
 }
