@@ -61,7 +61,7 @@ void* pthreadTCP(void* args) {
     }
     Vas(paraThread[1],semid);
     j=0;
-    while(sockClient[0]==0 && sockClient[1]==0){
+    while(sockClient[0]==0 || sockClient[1]==0){/* && remplacé par || pour reception des 2 msg */
         /* Attente d'une connexion */
         printf("Serveur : attente de connexion...\n");
         if((sockClient[j] = accept(fdTCP, NULL, NULL)) == -1) {
@@ -113,7 +113,7 @@ int main (int argc, char * argv []){
     if(argc != 5) {
         fprintf(stderr, "Usage : %s adresseIP port dimensions\n", argv[0]);
         fprintf(stderr, "Où :\n");
-        fprintf(stderr, " adresseIP : adresse IP du serveur du serveur\n");
+        fprintf(stderr, " adresseIP : adresse IP du serveur\n");
         fprintf(stderr, " port  : port d'écoute du serveur\n");
         fprintf(stderr, " dimensions : largeur et hauteur de la zone de jeu\n");
         exit(EXIT_FAILURE);
@@ -172,12 +172,12 @@ int main (int argc, char * argv []){
     }
     
     taille=sizeof(struct sockaddr_in);
-
+        /* Tant que le serveur est en route*/
         /* Attente des clients */
     while(boucle){
         /* Attente de la requête du client UDP */
         printf("Serveur en attente du message du client.\n");
-        if(nombreJoueurs<10){
+        if(nombreJoueurs < MAX_JOUEURS){
             if(recvfrom(sockfdUDP, &reqUDP, sizeof(message_t), 0,(struct sockaddr*)&adresseClientUDP[nombreJoueurs].adr, &taille) == -1) {
                 perror("Erreur lors de la réception du message ");
                 exit(EXIT_FAILURE);
