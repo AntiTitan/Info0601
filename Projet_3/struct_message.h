@@ -54,10 +54,11 @@
 typedef struct message{
     int typeMessage;
     struct sockaddr_in adresse;
-    int position [2];/* position de la ligne ou des poissons*/
+    int position [2];/* position de la ligne ou des poissons ou dimensions de l'etang*/
     int idJoueur;
     int idPartie;
     objet_t objet;
+    grille_t grille;
 }message_t;
 
 typedef struct couple{

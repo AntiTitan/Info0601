@@ -8,6 +8,7 @@ int boucle=1;
 int semid;
 int sockfdUDP;
 int fdTCP;
+int largeur, hauteur;
 
 pthread_t threadTCP[MAX_PARTIE];
 
@@ -75,15 +76,22 @@ void* pthreadTCP(void* args) {
         if(msg.typeMessage==CO_TCP_CS){
             printf("TCP réussi\n");
         }
-        msg.typeMessage = GAME;
-        printf("Serveur TCP: message recu.\nCreation de partie\n");
-        if(write(sockClient[j], &msg , sizeof(message_t)) == -1) {
-            perror("Erreur lors de l'envoi du message ");
-            exit(EXIT_FAILURE);
-        }
+        printf("Serveur TCP: message recu.\n");
         j++;
     }
-    return NULL;
+/* lancement d'une partie*/
+    /* création de la grille */
+
+
+    /* envoi des informations */
+    msg.typeMessage = GAME;
+    msg.grille.largeur= largeur;
+    msg.grille.hauteur= hauteur;
+    if(write(sockClient[j], &msg , sizeof(message_t)) == -1) {
+        perror("Erreur lors de l'envoi du message ");
+        exit(EXIT_FAILURE);
+    }
+    
 }
 
 int main (int argc, char * argv []){
@@ -91,7 +99,7 @@ int main (int argc, char * argv []){
 /*déclarations*/
     struct sigaction action;
 
-    int hauteur, largeur,numPort=1,pair=0,port;
+    int numPort=1,pair=0,port;
     socklen_t taille;
     struct sockaddr_in adresseServeurUDP,adresseServeurTCP;
     message_t reqUDP,repUDP;
@@ -110,16 +118,15 @@ int main (int argc, char * argv []){
     dimension de l'étang (largeur + hauteur)
 */
 
-    if(argc != 5) {
-        fprintf(stderr, "Usage : %s adresseIP port dimensions\n", argv[0]);
+    if(argc != 4) {
+        fprintf(stderr, "Usage : %s  port dimensions (L | H)\n", argv[0]);
         fprintf(stderr, "Où :\n");
-        fprintf(stderr, " adresseIP : adresse IP du serveur\n");
         fprintf(stderr, " port  : port d'écoute du serveur\n");
         fprintf(stderr, " dimensions : largeur et hauteur de la zone de jeu\n");
         exit(EXIT_FAILURE);
     }
-    largeur = atoi(argv[3]);
-    hauteur = atoi(argv[4]);
+    largeur = atoi(argv[2]);
+    hauteur = atoi(argv[3]);
     largeur ++;hauteur++;
 
     for(j=0;j<MAX_JOUEURS;j++){
@@ -162,7 +169,7 @@ int main (int argc, char * argv []){
         /* Création de l'adresse du serveur UDP */
     memset(&adresseServeurUDP, 0, sizeof(struct sockaddr_in));
     adresseServeurUDP.sin_family = AF_INET;
-    adresseServeurUDP.sin_port = htons(atoi(argv[2]));
+    adresseServeurUDP.sin_port = htons(atoi(argv[1]));
     adresseServeurUDP.sin_addr.s_addr = htonl(INADDR_ANY);
 
         /* Nommage de la socket UDP */
@@ -214,11 +221,11 @@ int main (int argc, char * argv []){
                     /* Envoi du message UDP */
                     repUDP.typeMessage = INFO_TCP_SC;
                     
-                    /* Création de l'adresse du serveur */
+                    /* Création de l'adresse TCP du serveur */
                     memset(&adresseServeurTCP, 0, sizeof(struct sockaddr_in));
                     adresseServeurTCP.sin_family = AF_INET;
-                    adresseServeurTCP.sin_addr.s_addr = htonl(atoi(argv[1]));
-                    port =atoi(argv[2])+numPort;
+                    adresseServeurTCP.sin_addr.s_addr = htonl(INADDR_ANY);
+                    port =atoi(argv[1])+numPort;
                     adresseServeurTCP.sin_port = htons(port);
                     
                     repUDP.adresse = adresseServeurTCP;
