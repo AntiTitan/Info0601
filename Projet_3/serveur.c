@@ -9,6 +9,7 @@ int semid;
 int sockfdUDP;
 int fdTCP;
 int largeur, hauteur;
+grille_t etang [MAX_PARTIE];
 
 pthread_t threadTCP[MAX_PARTIE];
 
@@ -33,11 +34,11 @@ void* pthreadTCP(void* args) {
 
 	int* paraThread;
     struct sockaddr_in adresseTCP;
-    int j;
+    int j,i,idPartie;
     int sockClient [2]={0,0};
     message_t msg;
-    paraThread= (int*)args;
-    
+    paraThread= (int*)args; /* [0] -> adresse TCP, [1] -> id de la partie */
+    idPartie = paraThread[1];
     /* Création de la socket TCP */
     if((fdTCP = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
         perror("Erreur lors de la création de la socket ");
@@ -60,7 +61,7 @@ void* pthreadTCP(void* args) {
         perror("Erreur lors de la mise en mode passif ");
         exit(EXIT_FAILURE);
     }
-    Vas(paraThread[1],semid);
+    Vas(idPartie,semid);
     j=0;
     while(sockClient[0]==0 || sockClient[1]==0){/* && remplacé par || pour reception des 2 msg */
         /* Attente d'une connexion */
@@ -80,17 +81,31 @@ void* pthreadTCP(void* args) {
         j++;
     }
 /* lancement d'une partie*/
-    /* création de la grille */
-
-
-    /* envoi des informations */
     msg.typeMessage = GAME;
     msg.grille.largeur= largeur;
     msg.grille.hauteur= hauteur;
-    if(write(sockClient[j], &msg , sizeof(message_t)) == -1) {
-        perror("Erreur lors de l'envoi du message ");
-        exit(EXIT_FAILURE);
+    /* création de l'étang */
+    etang[idPartie].objet=malloc(hauteur*sizeof(objet_t));
+    for(j=0;j<hauteur;j++){
+        etang[idPartie].objet[j]=malloc(largeur*sizeof(objet_t));
     }
+    /* init de l'étang */
+    for(i=0;i<hauteur;i++){
+        for(j=0;j<largeur;j++){
+            etang[idPartie].objet[i][j].typeObjet=VIDE;
+        }
+    }
+    /* envoi des informations GAME : id joueur, hauteur, largeur, grille */
+    msg.grille=etang[idPartie];
+    for(j=0;j<2;j++){
+        msg.idJoueur=j;
+        if(write(sockClient[j], &msg , sizeof(message_t)) == -1) {
+            perror("Erreur lors de l'envoi des infos GAME au joueur\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+    
+    /* création de 10 poissons pour débuter ->thread ? Compteur pour nombre max de poissons ?*/
     
 }
 
