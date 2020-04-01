@@ -28,20 +28,25 @@
 #define M_POIS       5
 /* pose de ligne CS*/
 #define P_LIGNE      6
+/* autorisation ou non de la pose de ligne */
+#define OK_LIGNE     7
 /* relevé de ligne CS */
-#define R_LIGNE      7
+#define R_LIGNE      8
 /* resultat de la pêche SC */
-#define PRISE        8
+#define PRISE        9
 /* passage en mode furtif CS */
-#define FURTIF_ON    9
+#define FURTIF_ON    10
 /* fin mode furtif SC */
-#define FURTIF_OFF   10
+#define FURTIF_OFF   11
 /* partie gagnée CS */
-#define WIN_GAME     11
+#define WIN_GAME     12
 /* fin du jeu SC */
-#define ENDGAME      12
+#define ENDGAME      13
 /* données du jeu SC */
-#define GAME         13
+#define GAME         14
+
+#define OK  1
+#define KO  0
 
 
 #define MAX_PARTIE 5
@@ -49,7 +54,7 @@
 
 /*struct*/
 
-/**** soit une seule struct pour tous les messages ****/
+/**** une seule struct pour tous les messages ****/
 
 typedef struct message{
     int typeMessage;
@@ -58,6 +63,7 @@ typedef struct message{
     int idJoueur;
     int idPartie;
     objet_t objet;
+    joueur_t j;
     grille_t grille;
 }message_t;
 

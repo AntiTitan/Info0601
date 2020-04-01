@@ -11,12 +11,14 @@
 #include "struct_message.h"
 #include "fonctions_sys.h"
 
+grille_t etang;
+joueur_t joueur;
 
 int main (int argc, char * argv []){
 
 /*déclarations*/
 
-    int sockfdUDP, sockfdTCP;
+    int sockfdUDP, sockfdTCP,i,j;
     struct sockaddr_in adresseServeurUDP , adresseServeurTCP;
     message_t reqUDP,repUDP;
     message_t reqTCP,repTCP;
@@ -109,8 +111,33 @@ int main (int argc, char * argv []){
         printf("Bon type !\n");
     }
     /*reception des données de la partie -> joueur et grille*/
+    joueur.idJoueur=repTCP.j.idJoueur;
+    printf("Je suis le joueur %d !\n",joueur.idJoueur);
+    etang.largeur=repTCP.grille.largeur;
+    etang.hauteur=repTCP.grille.hauteur;
+    etang.objet=malloc(sizeof(objet_t)*etang.hauteur);
 
     /*création locale de la grille*/
+
+    for(i=0;i<etang.hauteur;i++){
+        etang.objet[i]=malloc(sizeof(objet_t)*etang.largeur);
+        for(j=0;j<etang.largeur;j++){
+            etang.objet[i][j].typeObjet=VIDE;
+        }
+    }
+    printf("etang h: %d, l: %d\n",etang.hauteur, etang.largeur);
+
+    for(i=0;i<etang.hauteur;i++){
+        for(j=0;j<etang.largeur;j++){
+            printf("%d ",etang.objet[i][j].typeObjet);
+        }
+        printf("\n");
+    }
+
+    /* remplissage de l'étang avec des poissons */
+    /* reception du nombre de poissons */
+
+    /* reception de tous les poissons */
 
     /*début de partie -> tant que pas fin du jeu (ou deconnexion -> à gérer)*/
 

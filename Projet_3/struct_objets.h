@@ -19,7 +19,7 @@
 #define PNEU      4
 #define LIGNE     5
 
-#define REQUIN    0
+#define P_REQUIN    0
 #define POISSON1  1
 #define POISSON2  2
 #define POISSON3  3
@@ -33,10 +33,11 @@ typedef struct obj{
     int idPoiss;
     int typePoisson;
     int idJoueur;
-    pthread_t threadPoisson; 
-    pthread_t threadChrono;
-    pthread_mutex_t mutObj;
-    pthread_cond_t contObj;
+    int position [2];
+    pthread_t threadPoisson; /* à ne pas envoyer */
+    pthread_t threadChrono;  /* à ne pas envoyer */
+    pthread_mutex_t mutObj;  /* à ne pas envoyer */
+    pthread_cond_t contObj;  /* à ne pas envoyer */
 } objet_t;
 
     /* grille représentant l'étang */

@@ -96,7 +96,6 @@ void* pthreadTCP(void* args) {
         }
     }
     /* envoi des informations GAME : id joueur, hauteur, largeur, grille */
-    msg.grille=etang[idPartie];
     for(j=0;j<2;j++){
         msg.idJoueur=j;
         if(write(sockClient[j], &msg , sizeof(message_t)) == -1) {
@@ -105,9 +104,13 @@ void* pthreadTCP(void* args) {
         }
     }
     
-    /* création de 10 poissons pour débuter ->thread ? Compteur pour nombre max de poissons ?*/
-    
+    /* création de 50% de poissons MAX pour débuter ->thread ? Compteur pour nombre max de poissons ?*/
+    return EXIT_SUCCESS;
 }
+
+
+
+
 
 int main (int argc, char * argv []){
 
@@ -142,7 +145,6 @@ int main (int argc, char * argv []){
     }
     largeur = atoi(argv[2]);
     hauteur = atoi(argv[3]);
-    largeur ++;hauteur++;
 
     for(j=0;j<MAX_JOUEURS;j++){
         adresseClientUDP[j].vide=0;
