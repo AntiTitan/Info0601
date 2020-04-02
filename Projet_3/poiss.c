@@ -66,49 +66,6 @@ WINDOW *creer_fenetre_sim() {
 	return fen_sim;
 }
 
-void * affichage(void * arg){
-	int i,j;
-	while(1){
-
-		for(i=0;i<etang.hauteur;i++){
-			for(j=0;j<etang.largeur;j++){
-				pthread_mutex_lock(&etang.objet[i][j].mutObj);
-				switch(etang.objet[i][j].typeObjet){
-					case(POISSON) :
-						switch(etang.objet[i][j].idPoiss){
-							case(POISSON1) :
-
-							break;
-							case(POISSON2) :
-
-							break;
-							case(POISSON3) :
-
-							break;
-							case(P_REQUIN) :
-								/*tester idJoueur du requin*/
-							break;
-						}
-					break;
-					case(VIDE) :
-
-					break;
-					case(DYNAMITE) :
-						/* je ne sais pas s'il y a besoin,
-						 ça explose direct ou pas ?*/
-					break;
-					case(PNEU) :
-						/*tester idJoueur du pneu*/
-					break;
-					case(LIGNE) :
-						/*tester idJoueur de la ligne*/
-					break;
-				}
-			}
-		}
-	}
-}
-
 void *routine_poisson(void *arg) {
 	objet_t *obj = (objet_t *) arg;
 	pthread_t* suppr;
@@ -167,8 +124,13 @@ void *routine_poisson(void *arg) {
 					etang.objet[y][x].typeObjet = VIDE;
 					etang.objet[y-1][x].threadPoisson = etang.objet[y][x].threadPoisson;
 					etang.objet[y][x].threadPoisson = NULL;
-					mvwprintw(fen_sim, y, x, " "); /* fond bleu */
-					mvwprintw(fen_sim, y+1, x, etang.objet[y][x].idPoiss); /* fond jaune avec id Poisson*/
+					/* envoi de la nouvelle coordonnées
+						idPoiss, position 
+					*/
+					/*
+					mvwprintw(fen_sim, y, x, " "); /* fond bleu 
+					mvwprintw(fen_sim, y+1, x, etang.objet[y][x].idPoiss); /* fond jaune avec id Poisson
+					*/
 					y--;
 					change = 1;
 				}
@@ -189,8 +151,13 @@ void *routine_poisson(void *arg) {
 					etang.objet[y][x].typeObjet = VIDE;
 					etang.objet[y][x+1].threadPoisson = etang.objet[y][x].threadPoisson;
 					etang.objet[y][x].threadPoisson = NULL;
-					mvwprintw(fen_sim, y, x, " "); /* fond bleu */
-					mvwprintw(fen_sim, y+1, x, etang.objet[y][x].idPoiss); /* fond jaune avec id Poisson*/
+					/* envoi de la nouvelle coordonnées
+						idPoiss, position 
+					*/
+					/*
+					mvwprintw(fen_sim, y, x, " "); /* fond bleu 
+					mvwprintw(fen_sim, y+1, x, etang.objet[y][x].idPoiss); /* fond jaune avec id Poisson
+					*/
 					x++;
 					change = 1;
 				}
@@ -211,8 +178,13 @@ void *routine_poisson(void *arg) {
 					etang.objet[y][x].typeObjet = VIDE;
 					etang.objet[y+1][x].threadPoisson = etang.objet[y][x].threadPoisson;
 					etang.objet[y][x].threadPoisson = NULL;
-					mvwprintw(fen_sim, y, x, " "); /* fond bleu */
-					mvwprintw(fen_sim, y+1, x, etang.objet[y][x].idPoiss); /* fond jaune avec id Poisson*/
+					/* envoi de la nouvelle coordonnées
+						idPoiss, position 
+					*/
+					/*
+					mvwprintw(fen_sim, y, x, " "); /* fond bleu 
+					mvwprintw(fen_sim, y+1, x, etang.objet[y][x].idPoiss); /* fond jaune avec id Poisson
+					*/
 					y++;
 					change = 1;
 				}
@@ -233,8 +205,13 @@ void *routine_poisson(void *arg) {
 					etang.objet[y][x].typeObjet = VIDE;
 					etang.objet[y][x-1].threadPoisson = etang.objet[y][x].threadPoisson;
 					etang.objet[y][x].threadPoisson = NULL;
-					mvwprintw(fen_sim, y, x, " "); /* fond bleu */
-					mvwprintw(fen_sim, y+1, x, etang.objet[y][x].idPoiss); /* fond jaune avec id Poisson*/
+					/* envoi de la nouvelle coordonnées
+						idPoiss, position 
+					*/
+					/*
+					mvwprintw(fen_sim, y, x, " "); fond bleu 
+					mvwprintw(fen_sim, y+1, x, etang.objet[y][x].idPoiss);  fond jaune avec id Poisson
+					*/
 					x--;
 					change = 1;
 				}

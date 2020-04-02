@@ -14,12 +14,11 @@
 
 #define VIDE      0
 #define POISSON   1
-#define REQUIN    2 /* besoin ou pas ? */
+#define REQUIN    2 
 #define DYNAMITE  3
 #define PNEU      4
 #define LIGNE     5
 
-#define P_REQUIN    0
 #define POISSON1  1
 #define POISSON2  2
 #define POISSON3  3
@@ -33,6 +32,7 @@ typedef struct obj{
     int idPoiss;
     int typePoisson;
     int idJoueur;
+    int idJDeux; /* au cas où deux joueurs posent leur ligne au même endroit*/
     int position [2];
     pthread_t threadPoisson; /* à ne pas envoyer */
     pthread_t threadChrono;  /* à ne pas envoyer */
