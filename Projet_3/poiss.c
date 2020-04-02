@@ -66,6 +66,49 @@ WINDOW *creer_fenetre_sim() {
 	return fen_sim;
 }
 
+void * affichage(void * arg){
+	int i,j;
+	while(1){
+
+		for(i=0;i<etang.hauteur;i++){
+			for(j=0;j<etang.largeur;j++){
+				pthread_mutex_lock(&etang.objet[i][j].mutObj);
+				switch(etang.objet[i][j].typeObjet){
+					case(POISSON) :
+						switch(etang.objet[i][j].idPoiss){
+							case(POISSON1) :
+
+							break;
+							case(POISSON2) :
+
+							break;
+							case(POISSON3) :
+
+							break;
+							case(P_REQUIN) :
+								/*tester idJoueur du requin*/
+							break;
+						}
+					break;
+					case(VIDE) :
+
+					break;
+					case(DYNAMITE) :
+						/* je ne sais pas s'il y a besoin,
+						 ça explose direct ou pas ?*/
+					break;
+					case(PNEU) :
+						/*tester idJoueur du pneu*/
+					break;
+					case(LIGNE) :
+						/*tester idJoueur de la ligne*/
+					break;
+				}
+			}
+		}
+	}
+}
+
 void *routine_poisson(void *arg) {
 	objet_t *obj = (objet_t *) arg;
 	pthread_t* suppr;
@@ -214,8 +257,9 @@ void *routine_poisson(void *arg) {
 }
 
 int main(int argc, char * argv []){
-
-    int i,j;
+	WINDOW *fen_box_sim;
+    MEVENT event;
+	int ch, i,j;
 
     if(argc!=3){
         fprintf(stderr, "Usage : %s dimensions (L | H)\n", argv[0]);
@@ -227,12 +271,34 @@ int main(int argc, char * argv []){
     etang.hauteur=atoi(argv[2]);
     max_poiss= (etang.largeur*etang.hauteur)/5;
 
+	fen_box_sim = creer_fenetre_box_sim();
+	fen_sim = creer_fenetre_sim();
+
     for(i=0;i<etang.hauteur;i++){
         etang.objet[i]=malloc(sizeof(objet_t)*etang.largeur);
         for(j=0;j<etang.largeur;j++){
             etang.objet[i][j].typeObjet=VIDE;
         }
     }
+
+	ncurses_initialiser();
+	simulation_initialiser();
+	ncurses_souris();
+
+	mvprintw(LINES - 1, 0, "Tapez F2 pour quitter");
+	wrefresh(stdscr);
+	while((ch = getch()) != KEY_F(2)){
+		/*gère clic pour la ligne*/
+		/* un thread pour affichage poissons 
+		et le prog principal qui gère la ligne
+			-> mutex sur fen_sim ?*/
+
+	}
+
+	delwin(fen_box_sim);
+	delwin(fen_sim);
+	simulation_stopper();
+	ncurses_stopper();
 
     return EXIT_SUCCESS;
 }

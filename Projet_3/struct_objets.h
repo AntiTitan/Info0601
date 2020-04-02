@@ -14,7 +14,7 @@
 
 #define VIDE      0
 #define POISSON   1
-#define REQUIN    2
+#define REQUIN    2 /* besoin ou pas ? */
 #define DYNAMITE  3
 #define PNEU      4
 #define LIGNE     5
