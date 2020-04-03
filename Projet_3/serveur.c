@@ -32,7 +32,7 @@ void stopServeur(int sig){
 
 void* pthreadTCP(void* args) {
 
-	int* paraThread;
+	int* paraThread,retour;
     struct sockaddr_in adresseTCP;
     int j,i,idPartie;
     int sockClient [2]={0,0};
@@ -105,6 +105,42 @@ void* pthreadTCP(void* args) {
     }
     
     /* création de 50% de poissons MAX pour débuter ->thread ? Compteur pour nombre max de poissons ?*/
+    
+    
+    /*debut du jeu*/
+    fcntl(sockClient[0], F_SETFL, O_NONBLOCK);
+    fcntl(sockClient[1], F_SETFL, O_NONBLOCK);
+    while(1){
+        if((retour =read(sockClient[0], &msg, sizeof(message_t))) == -1) {
+            if(errno!= EAGAIN){
+                perror("Erreur lors de la lecture de la taille du message ");
+                exit(EXIT_FAILURE);
+            }
+            else{
+                printf("Pas de message de j0\n");
+                sleep(1);
+            }
+            
+        }
+        else{
+            printf("J'ai 0!\n");
+            /*tester les différents retours*/
+        }
+        if((retour =read(sockClient[1], &msg, sizeof(message_t) )) == -1) {
+            if(errno!= EAGAIN){
+                perror("Erreur lors de la lecture de la taille du message ");
+                exit(EXIT_FAILURE);
+            }
+            else{
+                printf("Pas de message de j1\n");
+                sleep(1);
+            }
+        }
+        else{
+            printf("J'ai 1!\n");
+            /*tester les différents retours*/
+        }
+    }
     return EXIT_SUCCESS;
 }
 
