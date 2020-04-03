@@ -133,6 +133,13 @@ int main (int argc, char * argv []){
         }
         printf("\n");
     }
+    reqTCP.typeMessage=ENDGAME;
+    reqTCP.idJoueur=joueur.idJoueur;
+    if(write(sockfdTCP, &reqTCP , sizeof(message_t)) == -1) {
+      perror("Erreur lors de l'envoi du message ");
+      exit(EXIT_FAILURE);
+    }
+    printf("Envoi endgame\n");
 
     /* remplissage de l'étang avec des poissons */
     /* reception du nombre de poissons */

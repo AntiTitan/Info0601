@@ -17,11 +17,15 @@
 #include <pthread.h>
 #include <sys/stat.h>    /* Pour S_IRUSR, S_IWUSR */
 
+#include <sys/select.h>
+#include <netinet/in.h> 
+
 #include "struct_message.h"
 
 int creerSemaphores(int CLE_S);
 int supprimerSemaphores(int semid);
 int recupererSemaphores(int CLE_S);
+void videMessage(message_t*);
 void Peux(int sem,int semid);
 void Vas(int sem,int semid);
 

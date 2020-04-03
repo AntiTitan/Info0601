@@ -12,6 +12,7 @@ int largeur, hauteur;
 grille_t etang [MAX_PARTIE];
 
 pthread_t threadTCP[MAX_PARTIE];
+pthread_t jTCP[MAX_JOUEURS];
 
 void stopServeur(int sig){
     void * res;
@@ -30,13 +31,78 @@ void stopServeur(int sig){
     }
 }
 
+void * joueurTCP(void * args){ /*va communiquer avec un joueur*/
+    int* paraThread;
+    int idJ,socket,retour;
+    message_t msg;
+    paraThread= (int*)args; /* [0] -> socket du joueur, [1] -> id du joueur */
+    socket=paraThread[0];
+    idJ=paraThread[1];
+    printf("créé j%d\n",idJ);
+    printf("socket : %d\n",socket);
+    sleep(1);
+    fcntl(socket, F_SETFL, O_NONBLOCK);
+    while(1){
+        if((retour=read(socket, &msg, sizeof(message_t))) == -1) {
+            if(errno!= EAGAIN){
+                perror("Erreur lors de la lecture de la taille du message ");
+                exit(EXIT_FAILURE);
+            }
+            else{
+                printf("Pas de message de j%d\n",idJ);
+                sleep(1);
+            }
+        }
+        else{
+            printf("J'ai %d!\n",idJ);
+            switch(msg.typeMessage){
+                case (CO_UDP_CS): printf("co udp cs\n");
+                break;
+                case (CO_TCP_CS): printf("co tcp cs\n");
+                break;
+                case (INFO_TCP_SC):printf("info tcp sc\n");
+                break;
+                case (C_POIS): printf("c poiss\n");
+                break;
+                case (F_POIS): printf("f poiss\n");
+                break;
+                case (M_POIS): printf("m poiss\n");
+                break;
+                case (P_LIGNE): printf("p ligne\n");
+                break;
+                case (OK_LIGNE): printf("ok ligne\n");
+                break;
+                case (R_LIGNE):printf("r ligne\n");
+                break;
+                case (PRISE): printf("prise\n");
+                break;
+                case (FURTIF_ON): printf("furtif on\n");
+                break;
+                case (FURTIF_OFF): printf("Furtil off\n");
+                break;
+                case (WIN_GAME): printf("WIN_GAME\n");
+                break;
+                case (ENDGAME): printf("ENDGAME\n");
+                break;
+                case (GAME): printf("GAME\n");
+                break;
+                default: printf("Autre type, oups\n");
+            }
+             sleep(1);
+            /*tester les différents retours*/
+        }
+    }
+}
+
 void* pthreadTCP(void* args) {
 
-	int* paraThread,retour;
+	int* paraThread;
+    int statut;
     struct sockaddr_in adresseTCP;
     int j,i,idPartie;
     int sockClient [2]={0,0};
     message_t msg;
+    int para0 [2],para1 [2];
     paraThread= (int*)args; /* [0] -> adresse TCP, [1] -> id de la partie */
     idPartie = paraThread[1];
     /* Création de la socket TCP */
@@ -52,7 +118,7 @@ void* pthreadTCP(void* args) {
 
     /* Nommage de la socket */
     if(bind(fdTCP, (struct sockaddr*)&adresseTCP, sizeof(struct sockaddr_in)) == -1) {
-        perror("Erreur lors du nommage de la socket ");
+        perror("Erreur lors du nommage de la socket ici");
         exit(EXIT_FAILURE);
     }
 
@@ -108,39 +174,21 @@ void* pthreadTCP(void* args) {
     
     
     /*debut du jeu*/
-    fcntl(sockClient[0], F_SETFL, O_NONBLOCK);
-    fcntl(sockClient[1], F_SETFL, O_NONBLOCK);
-    while(1){
-        if((retour =read(sockClient[0], &msg, sizeof(message_t))) == -1) {
-            if(errno!= EAGAIN){
-                perror("Erreur lors de la lecture de la taille du message ");
-                exit(EXIT_FAILURE);
-            }
-            else{
-                printf("Pas de message de j0\n");
-                sleep(1);
-            }
-            
-        }
-        else{
-            printf("J'ai 0!\n");
-            /*tester les différents retours*/
-        }
-        if((retour =read(sockClient[1], &msg, sizeof(message_t) )) == -1) {
-            if(errno!= EAGAIN){
-                perror("Erreur lors de la lecture de la taille du message ");
-                exit(EXIT_FAILURE);
-            }
-            else{
-                printf("Pas de message de j1\n");
-                sleep(1);
-            }
-        }
-        else{
-            printf("J'ai 1!\n");
-            /*tester les différents retours*/
-        }
+    para0[0]=sockClient[0];
+    para0[1]=0;
+    printf("creation thread %d\n", idPartie*2+0);
+    statut= pthread_create(&jTCP[idPartie*2], NULL, joueurTCP,(void *)&para0);
+    if(statut!=0){
+        printf("Pb création thread\n");
     }
+    para1[0]=sockClient[1];
+    para1[1]=1;
+    printf("creation thread %d\n", idPartie*2+1);
+    statut= pthread_create(&jTCP[idPartie*2+1], NULL, joueurTCP,(void *)&para1);
+    if(statut!=0){
+        printf("Pb création thread\n");
+    }
+    
     return EXIT_SUCCESS;
 }
 

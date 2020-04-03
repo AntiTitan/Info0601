@@ -34,6 +34,14 @@ int recupererSemaphores(int CLE_S) {
     return semid;
 }
 
+void videMessage(message_t* msg){
+    msg->typeMessage=-1;
+    msg->position[0]=-1;
+    msg->position[1]=-1;
+    msg->idJoueur=-1;
+    msg->idPartie=-1;
+}
+
 /**
  * P(S) avec S un sémaphore.
  * @param sem     le sémaphore concerne
