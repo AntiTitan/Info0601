@@ -111,7 +111,7 @@ int main (int argc, char * argv []){
         printf("Bon type !\n");
     }
     /*reception des données de la partie -> joueur et grille*/
-    joueur.idJoueur=repTCP.j.idJoueur;
+    joueur.idJoueur=repTCP.idJoueur;
     printf("Je suis le joueur %d !\n",joueur.idJoueur);
     etang.largeur=repTCP.grille.largeur;
     etang.hauteur=repTCP.grille.hauteur;
@@ -133,14 +133,20 @@ int main (int argc, char * argv []){
         }
         printf("\n");
     }
+    printf("ici lol\n");
+    if(read(sockfdTCP, &repTCP, sizeof(message_t)) == -1) {
+      perror("Erreur lors de la lecture de la taille du message ");
+      exit(EXIT_FAILURE);
+    }
+    printf("Reception %d : type message %d\n",joueur.idJoueur,repTCP.typeMessage);
+    
     reqTCP.typeMessage=ENDGAME;
     reqTCP.idJoueur=joueur.idJoueur;
     if(write(sockfdTCP, &reqTCP , sizeof(message_t)) == -1) {
       perror("Erreur lors de l'envoi du message ");
       exit(EXIT_FAILURE);
     }
-    printf("Envoi endgame\n");
-
+    printf("Envoi endgame %d\n",joueur.idJoueur);
     /* remplissage de l'étang avec des poissons */
     /* reception du nombre de poissons */
 

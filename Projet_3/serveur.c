@@ -28,6 +28,9 @@ void stopServeur(int sig){
         for(j=0;j<MAX_PARTIE;j++){
             pthread_join(threadTCP[j],&res);
         }
+        for(j=0;j<MAX_JOUEURS;j++){
+            pthread_join(jTCP[j],&res);
+        }
     }
 }
 
@@ -35,23 +38,22 @@ void * joueurTCP(void * args){ /*va communiquer avec un joueur*/
     int* paraThread;
     int idJ,socket,retour;
     message_t msg;
+
     paraThread= (int*)args; /* [0] -> socket du joueur, [1] -> id du joueur */
     socket=paraThread[0];
     idJ=paraThread[1];
     printf("créé j%d\n",idJ);
     printf("socket : %d\n",socket);
     sleep(1);
-    fcntl(socket, F_SETFL, O_NONBLOCK);
+    msg.typeMessage=WIN_GAME;
+    if(write(socket,&msg,sizeof(message_t))==-1){
+        perror("Erreur lors de l'envoi de WINGAME au joueur\n");
+        exit(EXIT_FAILURE);
+    }
     while(1){
         if((retour=read(socket, &msg, sizeof(message_t))) == -1) {
-            if(errno!= EAGAIN){
-                perror("Erreur lors de la lecture de la taille du message ");
-                exit(EXIT_FAILURE);
-            }
-            else{
-                printf("Pas de message de j%d\n",idJ);
-                sleep(1);
-            }
+            perror("Erreur lors de la lecture de la taille du message ");
+            exit(EXIT_FAILURE);
         }
         else{
             printf("J'ai %d!\n",idJ);
@@ -92,6 +94,7 @@ void * joueurTCP(void * args){ /*va communiquer avec un joueur*/
             /*tester les différents retours*/
         }
     }
+    free(paraThread);
 }
 
 void* pthreadTCP(void* args) {
@@ -102,7 +105,7 @@ void* pthreadTCP(void* args) {
     int j,i,idPartie;
     int sockClient [2]={0,0};
     message_t msg;
-    int para0 [2],para1 [2];
+    int paraA [2], paraB [2];
     paraThread= (int*)args; /* [0] -> adresse TCP, [1] -> id de la partie */
     idPartie = paraThread[1];
     /* Création de la socket TCP */
@@ -164,6 +167,7 @@ void* pthreadTCP(void* args) {
     /* envoi des informations GAME : id joueur, hauteur, largeur, grille */
     for(j=0;j<2;j++){
         msg.idJoueur=j;
+        printf("J'envoie au joueur %d\n",msg.idJoueur);
         if(write(sockClient[j], &msg , sizeof(message_t)) == -1) {
             perror("Erreur lors de l'envoi des infos GAME au joueur\n");
             exit(EXIT_FAILURE);
@@ -174,21 +178,24 @@ void* pthreadTCP(void* args) {
     
     
     /*debut du jeu*/
-    para0[0]=sockClient[0];
-    para0[1]=0;
+    paraA[0]=sockClient[0];
+    paraA[1]=5;
     printf("creation thread %d\n", idPartie*2+0);
-    statut= pthread_create(&jTCP[idPartie*2], NULL, joueurTCP,(void *)&para0);
+    statut= pthread_create(&jTCP[idPartie*2], NULL, joueurTCP,paraA);
     if(statut!=0){
         printf("Pb création thread\n");
     }
-    para1[0]=sockClient[1];
-    para1[1]=1;
+    paraB[0]=sockClient[1];
+    paraB[1]=88;
     printf("creation thread %d\n", idPartie*2+1);
-    statut= pthread_create(&jTCP[idPartie*2+1], NULL, joueurTCP,(void *)&para1);
+    statut= pthread_create(&jTCP[idPartie*2+1], NULL, joueurTCP,paraB);
     if(statut!=0){
         printf("Pb création thread\n");
     }
-    
+    while(1){
+        sleep(1);
+    }
+    free(paraThread);
     return EXIT_SUCCESS;
 }
 
@@ -367,9 +374,7 @@ int main (int argc, char * argv []){
         }
         
     }
-    for(j=0;j<MAX_PARTIE;j++){
-        pthread_join(threadTCP[j],&res);
-    }
+    
 /*envoi aux client des informations TCP*/
 
 /*création de la grille et début partie*/
@@ -382,7 +387,13 @@ int main (int argc, char * argv []){
 
     /*déplacement poisson ->avertir les clients*/
 
-/*fin quand réception gagné ou déconnexion*/  
+/*fin quand réception gagné ou déconnexion*/ 
+    for(j=0;j<MAX_PARTIE;j++){
+        pthread_join(threadTCP[j],&res);
+    }
+    for(j=0;j<MAX_JOUEURS;j++){
+        pthread_join(jTCP[j],&res);
+    }
     /* Fermeture de la socket */
     if(close(sockfdUDP) == -1) {
         perror("Erreur lors de la fermeture de la socket ");

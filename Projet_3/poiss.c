@@ -9,7 +9,8 @@
 int max_poiss;
 int * enfuite, *libre; /*malloc dans le prog principal*/
 pthread_t * * threads_poissons;
-WINDOW *fen_sim;							/* Fenetre de simulation partagee par les fourmis*/
+WINDOW *fen_sim;							/* Fenetre de simulation partagee par les poissons*/
+joueur_t joueur;
 
 grille_t etang;
 
@@ -77,41 +78,12 @@ void *routine_poisson(void *arg) {
 	srand(time(NULL));
 	while (1) { /*s'arrete quand il est tué ou on met une variable -> comment la modifier */
 
-    /*tester s'il y a une ligne proche -> comment faire pour la fuite ?*/
-    pthread_mutex_lock(&etang.objet[y][x].mutObj);
+		/*tester s'il y a une ligne proche -> comment faire pour la fuite ?*/
+		pthread_mutex_lock(&etang.objet[y][x].mutObj);
+		
+		/*attendre signal deplacement cond*/
 
-    /* en haut */
-    pthread_mutex_lock(&etang.objet[y-1][x].mutObj);
-    if(etang.objet[y-1][x].typeObjet == 5 && !enfuite ){
-        /*attrapé par etang.objet[y-1][x].idJoueur */
-        /* blocage ?*/
-    }
-    pthread_mutex_unlock(&etang.objet[y-1][x].mutObj);
-
-    /* en bas */
-    pthread_mutex_lock(&etang.objet[y+1][x].mutObj);
-    if(etang.objet[y+1][x].typeObjet == 5 && !enfuite ){
-        /*attrapé par etang.objet[y+1][x].idJoueur */
-        /* blocage ?*/
-    }
-    pthread_mutex_unlock(&etang.objet[y+1][x].mutObj);
-
-    /* à droite */
-    pthread_mutex_lock(&etang.objet[y][x+1].mutObj);
-    if(etang.objet[y][x+1].typeObjet == 5 && !enfuite ){
-        /*attrapé par etang.objet[y][x+1].idJoueur */
-        /* blocage ?*/
-    }
-    pthread_mutex_unlock(&etang.objet[y][x+1].mutObj);
-
-    /* à gauche */
-    pthread_mutex_lock(&etang.objet[y][x-1].mutObj);
-    if(etang.objet[y][x-1].typeObjet == 5 && !enfuite ){
-        /*attrapé par etang.objet[y][x-1].idJoueur */
-        /* blocage ?*/
-    }
-    pthread_mutex_unlock(&etang.objet[y][x-1].mutObj);
-    /*sinon se déplacer*/
+		/*sinon se déplacer*/
 		dir = (rand() % 4) ;
 		change = 0;
 		pthread_testcancel();
@@ -126,10 +98,6 @@ void *routine_poisson(void *arg) {
 					etang.objet[y][x].threadPoisson = NULL;
 					/* envoi de la nouvelle coordonnées
 						idPoiss, position 
-					*/
-					/*
-					mvwprintw(fen_sim, y, x, " "); /* fond bleu 
-					mvwprintw(fen_sim, y+1, x, etang.objet[y][x].idPoiss); /* fond jaune avec id Poisson
 					*/
 					y--;
 					change = 1;
@@ -249,26 +217,26 @@ void * affichage(void * arg){
 		
 				switch(etang.objet[i][j].typeObjet){
 					case(POISSON) :
-						switch(etang.objet[i][j].idPoiss){
-							case(POISSON1) :
-								/* fond jaune avec 1 en noir */
-							break;
-							case(POISSON2) :
-								/* fond jaune avec 2 en noir */
-							break;
-							case(POISSON3) :
-								/* fond jaune avec 3 en noir */
-							break;
-						}
+						
+					mvwprintw(fen_sim, j, i, " "); /* fond bleu */
+					mvwprintw(fen_sim, j+1, i, etang.objet[i][j].idPoiss); /* fond jaune avec id Poisson */
+					
 					break;
 					case(REQUIN) :
 						/*tester idJoueur du requin*/
+						mvwprintw(fen_sim, j, i, " "); /* fond bleu */
+						if(etang.objet[i][j].idJoueur==joueur.idJoueur){
+							mvwprintw(fen_sim, j+1, i, " "); /* fond vert */
+						}
+						else{
+							mvwprintw(fen_sim, j+1, i, etang.objet[i][j].idPoiss); /* fond jaune avec id Poisson */
+						}
 						/* fond jaune avec idPoiss en noir 
 							ou
 						   fond vert*/
 					break;
 					case(VIDE) :
-
+						mvwprintw(fen_sim, j, i, " "); /* fond bleu */
 					break;
 					case(DYNAMITE) :
 						/* je ne sais pas s'il y a besoin,
@@ -276,10 +244,22 @@ void * affichage(void * arg){
 					break;
 					case(PNEU) :
 						/*tester idJoueur du pneu*/
+						if(etang.objet[i][j].idJoueur==joueur.idJoueur){
+							mvwprintw(fen_sim, j+1, i, " "); /* fond noir */
+						}
+						else{
+							mvwprintw(fen_sim, j+1, i, " "); /* fond bleu */
+						}
 						/*fond noir ou bleu selon idJ*/
 					break;
 					case(LIGNE) :
 						/*tester idJoueur de la ligne*/
+						if(etang.objet[i][j].idJoueur==joueur.idJoueur){
+							mvwprintw(fen_sim, j+1, i, " "); /* fond gris ou violet */
+						}
+						else{
+							mvwprintw(fen_sim, j+1, i, " "); /* fond bleu */
+						}
 						/*fond gris ou bleu selon idJ*/
 					break;
 				}
