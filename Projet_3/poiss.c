@@ -6,9 +6,13 @@
 
 
 
-int max_poiss;
+int max_poiss,nbpoiss,afficheMoi,bougeMoi;
 int * enfuite, *libre; /*malloc dans le prog principal*/
 pthread_t * * threads_poissons;
+pthread_t affiche;
+pthread_cond_t aff = PTHREAD_COND_INITIALIZER;
+pthread_cond_t bouge = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t aMonTour = PTHREAD_MUTEX_INITIALIZER;
 WINDOW *fen_sim;							/* Fenetre de simulation partagee par les poissons*/
 joueur_t joueur;
 
@@ -194,7 +198,12 @@ void *routine_poisson(void *arg) {
 				break;
 		}
 		wrefresh(fen_sim);
-		sleep(1);
+		/* afficheMoi=1;
+		pthread_cond_broadcast(&aff); */ /*ici ou pas ?*/
+		/* c'est pas comme ça qu'on va afficher une fois par tour
+			-> bloquer threadPoiss au bout de 1 tour et afficher ?
+					si oui, comment ?*/
+		sleep(3);
 	}
 	
 	free(obj);
@@ -205,6 +214,7 @@ void * affichage(void * arg){
 	int i,j;
 	while(1){
 		/* on bloque tous les mutex au départ -> pas besoin si on fait affichage tour par tour */
+		pthread_mutex_lock(&aMonTour);
 		/*
 		for(i=0;i<etang.hauteur;i++){
 			for(j=0;j<etang.largeur;j++){
@@ -212,6 +222,10 @@ void * affichage(void * arg){
 			}
 		}
 		*/
+		while(!afficheMoi){
+			pthread_cond_wait(&aff, &aMonTour);
+		}
+		
 		for(i=0;i<etang.hauteur;i++){
 			for(j=0;j<etang.largeur;j++){
 		
@@ -272,13 +286,17 @@ void * affichage(void * arg){
 			}
 		}
 		*/
+		pthread_mutex_unlock(&aMonTour);
+		afficheMoi=0;
+		bougeMoi=1;
+		pthread_cond_broadcast(&bouge);
 	}
 }
 
 int main(int argc, char * argv []){
 	WINDOW *fen_box_sim;
     MEVENT event;
-	int ch, i,j;
+	int ch, i,j,statut;
 
     if(argc!=3){
         fprintf(stderr, "Usage : %s dimensions (L | H)\n", argv[0]);
@@ -304,6 +322,13 @@ int main(int argc, char * argv []){
 	simulation_initialiser();
 	ncurses_souris();
 
+	for(i=0;i<max_poiss/5;i++){
+		statut=pthread_create(&threads_poissons[i], NULL,routine_poisson,(void *)i);
+		if(statut!=0){
+			printf("Pb création threadpoiss %d\n",i);
+		}
+	}
+	statut=pthread_create(&affiche, NULL,affichage,NULL);
 	mvprintw(LINES - 1, 0, "Tapez F2 pour quitter");
 	wrefresh(stdscr);
 	while((ch = getch()) != KEY_F(2)){
@@ -318,6 +343,9 @@ int main(int argc, char * argv []){
 	delwin(fen_sim);
 	simulation_stopper();
 	ncurses_stopper();
-
+	for(i=0;i<etang.hauteur;i++){
+        free(etang.objet[i]); 
+    }
+	free(threads_poissons);
     return EXIT_SUCCESS;
 }
