@@ -2,8 +2,8 @@
 # CONFIGURATION GENERALE
 #
 
-EXEC = serveur joueur # poiss
-OBJETS = fonctions_sys.o
+EXEC = serveur joueur poiss
+OBJETS = fonctions_sys.o ncurses.o
 NOM_PROJET = projet3
 
 #
@@ -25,7 +25,7 @@ OBJETS_O = $(OBJETS) $(EXEC_O)
 CLE = 1056
 CC = gcc -g -pthread
 CCFLAGS = -Wall -O3 -ansi -pedantic -Werror -D CLE_SEM=$(CLE)
-CCLIBS =
+CCLIBS = -lncurses
 
 #
 # REGLES
@@ -85,8 +85,9 @@ archive: clean
 	@echo "Termine."
 
 # DEPENDANCES
+ncurses.o:ncurses.c ncurses.h
 fonctions_sys.o:fonctions_sys.c fonctions_sys.h struct_message.h
 serveur.o: serveur.c struct_message.h fonctions_sys.h
 joueur.o: joueur.c struct_message.h fonctions_sys.h
-# poiss.o:poiss.c struct_message.h fonctions_sys.h
+poiss.o:poiss.c struct_message.h fonctions_sys.h ncurses.h
 
