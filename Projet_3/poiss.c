@@ -14,16 +14,18 @@
 #define AFFICHE 2
 
 int max_poiss,nbpoiss,action=0;
-int abouge;
+int abouge,boucle=1;
 pthread_mutex_t poissons = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t abouges = PTHREAD_MUTEX_INITIALIZER;
 int * enfuite, *libre; /*malloc dans le prog principal*/
 pthread_t * * threads_poissons;
 pthread_t affiche;
+pthread_t gerant;
 pthread_cond_t aff = PTHREAD_COND_INITIALIZER;
 pthread_cond_t bouge = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t act = PTHREAD_MUTEX_INITIALIZER;
-WINDOW *fen_sim;							/* Fenetre de simulation partagee par les poissons*/
+WINDOW *fen_sim,*fen_msg;
+WINDOW *fen_box_sim,*fen_box_msg;							/* Fenetre de simulation partagee par les poissons*/
 joueur_t joueur;
 
 grille_t etang;
@@ -31,19 +33,18 @@ grille_t etang;
 void simulation_initialiser() {
 	int i, j;
 	
-    threads_poissons=malloc(max_poiss*sizeof(pthread_t));
-	for (i = 0; i < max_poiss; i++)		/* Au depart il n'y a aucune fourmi dans la simulation */
-		
-        threads_poissons[i] = NULL;
-		
+    threads_poissons=malloc(max_poiss*sizeof(pthread_t *));
+	for (i = 0; i < max_poiss; i++){		/* Au depart il n'y a aucun poisson dans la simulation */
+        threads_poissons[i] = malloc(sizeof(pthread_t));
+	}
 	for (i = 0; i < etang.hauteur; i++) {	/* Initialisation des cases de la simulation */
 		for (j = 0; j < etang.largeur; j++) {
+			/* etang.objet[i][j].threadPoisson = 0; */
+			
 			etang.objet[i][j].typeObjet = VIDE;
-			etang.objet[i][j].threadPoisson = 0;
 			pthread_mutex_init(&etang.objet[i][j].mutObj, NULL);
 		}
 	}
-
 }
 
 void simulation_stopper() {
@@ -52,9 +53,10 @@ void simulation_stopper() {
 	for (i = 0; i <max_poiss; i++) {
 		if (threads_poissons[i] != NULL) {
 			pthread_cancel(*threads_poissons[i]);
-			threads_poissons[i] = NULL;
+			threads_poissons[i] = 0;
 		}
 	}
+	free(threads_poissons);
 }
 
 WINDOW *creer_fenetre_box_sim() {
@@ -79,6 +81,32 @@ WINDOW *creer_fenetre_sim() {
 	fen_sim = newwin(etang.hauteur, etang.largeur, 1, 1);
 	
 	return fen_sim;
+}
+
+WINDOW *creer_fenetre_box_msg() {
+/* Creation de la fenetre de contour de la fenetre de messages */
+
+	WINDOW *fen_box_msg;
+	
+	fen_box_msg = newwin(10 + 2, 20 + 2, 0, etang.largeur + 2);
+	box(fen_box_msg, 0, 0);
+	mvwprintw(fen_box_msg, 0, (etang.largeur + 2) / 2 - 4, "MESSAGES");
+	wrefresh(fen_box_msg);
+	
+	return fen_box_msg;
+}
+
+WINDOW *creer_fenetre_msg() {
+/* Creation de la fenetre de messages dans la fenetre de contour */
+/* Les messages indicatifs des evenements de la simulation et de l'interface */
+/* utilisateur sont affiches dans cete fenetre */
+
+	WINDOW *fen_msg;
+	
+	fen_msg = newwin(10, 20, 1, etang.largeur + 3);
+	scrollok(fen_msg, TRUE);
+	
+	return fen_msg;
 }
 void* GestionPref(void* arg) {
 
@@ -138,6 +166,8 @@ void *routine_poisson(void *arg) {
 	objet_t *obj = (objet_t *) arg;
 	int dir, x, y, change,id;
     /*tableau int enfuite (-> poisson en fuite) et tab int continue (-> poisson attrapé)*/
+	printf("poisson\n");
+	sleep(5);
 	x = obj->position[0];
 	y = obj->position[1];
     id=etang.objet[x][y].idPoiss;
@@ -372,9 +402,30 @@ void * affichage(void * arg){
 	}
 }
 
+void stopPoisson(int sig){
+    int i;
+
+    if(sig== SIGINT){
+        boucle=0;
+		delwin(fen_box_sim);
+		delwin(fen_sim);
+		simulation_stopper();
+		ncurses_stopper();
+		for(i=0;i<etang.hauteur;i++){
+			free(etang.objet[i]); 
+		}
+		free(etang.objet);
+		pthread_mutex_lock(&poissons);
+		for(i=0;i<nbpoiss;i++){
+			free(threads_poissons[i]);
+		}
+		pthread_mutex_unlock(&poissons);
+		free(threads_poissons);
+    }
+}
+
 int main(int argc, char * argv []){
-	WINDOW *fen_box_sim;
-	pthread_t gerant;
+	struct sigaction action;
 	objet_t * obj;
 	int ch, i,j,statut;
 
@@ -384,38 +435,64 @@ int main(int argc, char * argv []){
         fprintf(stderr, " dimensions : largeur et hauteur de la zone de jeu\n");
         exit(EXIT_FAILURE);
     }
+	
+
+	action.sa_handler = stopPoisson;
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = 0;
+    if(sigaction(SIGINT, &action, NULL) == -1) {
+        fprintf(stderr, "Erreur lors du positionnement\n");
+        exit(EXIT_FAILURE);
+    }
+
     etang.largeur=atoi(argv[1]);
     etang.hauteur=atoi(argv[2]);
     max_poiss= (etang.largeur*etang.hauteur)/5;
 
-	abouge=0;
-	fen_box_sim = creer_fenetre_box_sim();
-	fen_sim = creer_fenetre_sim();
+	etang.objet=malloc(sizeof(objet_t*)*etang.hauteur);
 
     for(i=0;i<etang.hauteur;i++){
-        etang.objet[i]=malloc(sizeof(objet_t)*etang.largeur);
-        for(j=0;j<etang.largeur;j++){
+        etang.objet[i]=(objet_t*)malloc(sizeof(objet_t)*etang.largeur);
+		for(j=0;j<etang.largeur;j++){
+
             etang.objet[i][j].typeObjet=VIDE;
         }
     }
 
-	ncurses_initialiser();
+	
+	
 	simulation_initialiser();
-	ncurses_souris();
+	
+	abouge=0;
+	fen_box_sim = creer_fenetre_box_sim();
+	fen_sim = creer_fenetre_sim();
+	fen_box_msg = creer_fenetre_box_msg();
+	fen_msg = creer_fenetre_msg();
+	
+	
 	statut = pthread_create(&gerant, NULL, GestionPref, NULL);
+	statut=pthread_create(&affiche, NULL,affichage,NULL);
 	
 	for(i=0;i<max_poiss/5;i++){
 		obj=(objet_t*)malloc(sizeof(objet_t));
+		
 		*obj=creerPoisson();
+		printf("%d\n",i);
 		statut=pthread_create(threads_poissons[i], NULL,routine_poisson,(void *)obj);
 		if(statut!=0){
 			printf("Pb création threadpoiss %d\n",i);
 		}
+		
 	}
-	statut=pthread_create(&affiche, NULL,affichage,NULL);
+	printf("coucou %d\n",max_poiss/5);sleep(2);
+	ncurses_initialiser();
+	
+
+	/* ncurses_souris(); */
+	
 	mvprintw(LINES - 1, 0, "Tapez F2 pour quitter");
 	wrefresh(stdscr);
-	while((ch = getch()) != KEY_F(2)){
+	while((ch = getch()) != KEY_F(2) && boucle){
 		/*gère clic pour la ligne*/
 		/* un thread pour affichage poissons 
 		et le prog principal qui gère la ligne
@@ -430,6 +507,5 @@ int main(int argc, char * argv []){
 	for(i=0;i<etang.hauteur;i++){
         free(etang.objet[i]); 
     }
-	free(threads_poissons);
     return EXIT_SUCCESS;
 }
