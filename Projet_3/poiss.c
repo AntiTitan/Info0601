@@ -180,10 +180,10 @@ void *routine_poisson(void *arg) {
 		pthread_mutex_lock(&act);
 		
 		/*attendre signal deplacement cond*/
-		while(action!= BOUGE){
+		while(action != BOUGE){
 			pthread_cond_wait(&bouge,&act);
 		}
-		pthread_mutex_unlock(&act);
+		pthread_mutex_unlock(&act); /*Il faut peut etre le mettre a la fin*/
 		pthread_mutex_lock(&etang.objet[y][x].mutObj);
 		/*sinon se déplacer*/
 		dir = (rand() % 4) ;
@@ -319,6 +319,7 @@ void *routine_poisson(void *arg) {
 
 void * affichage(void * arg){
 	int i,j;
+
 	while(1){
 		/* on bloque tous les mutex au départ -> pas besoin si on fait affichage tour par tour */
 		pthread_mutex_lock(&act);
@@ -339,11 +340,10 @@ void * affichage(void * arg){
 				pthread_mutex_lock(&etang.objet[i][j].mutObj);
 				switch(etang.objet[i][j].typeObjet){
 					case(POISSON) :
+						mvwprintw(fen_sim, j, i, " "); /* fond bleu */
+						mvwprintw(fen_sim, j+1, i, "%d",etang.objet[i][j].idPoiss); /* fond jaune avec id Poisson */
 						
-					mvwprintw(fen_sim, j, i, " "); /* fond bleu */
-					mvwprintw(fen_sim, j+1, i, "%d",etang.objet[i][j].idPoiss); /* fond jaune avec id Poisson */
-					
-					break;
+						break;
 					case(REQUIN) :
 						/*tester idJoueur du requin*/
 						mvwprintw(fen_sim, j, i, " "); /* fond bleu */
@@ -356,14 +356,14 @@ void * affichage(void * arg){
 						/* fond jaune avec idPoiss en noir 
 							ou
 						   fond vert*/
-					break;
+						break;
 					case(VIDE) :
 						mvwprintw(fen_sim, j, i, " "); /* fond bleu */
-					break;
+						break;
 					case(DYNAMITE) :
 						/* je ne sais pas s'il y a besoin,
 						 ça explose direct ou pas ?*/
-					break;
+						break;
 					case(PNEU) :
 						/*tester idJoueur du pneu*/
 						if(etang.objet[i][j].idJoueur==joueur.idJoueur){
@@ -373,7 +373,7 @@ void * affichage(void * arg){
 							mvwprintw(fen_sim, j+1, i, " "); /* fond bleu */
 						}
 						/*fond noir ou bleu selon idJ*/
-					break;
+						break;
 					case(LIGNE) :
 						/*tester idJoueur de la ligne*/
 						if(etang.objet[i][j].idJoueur==joueur.idJoueur){
@@ -383,9 +383,10 @@ void * affichage(void * arg){
 							mvwprintw(fen_sim, j+1, i, " "); /* fond bleu */
 						}
 						/*fond gris ou bleu selon idJ*/
-					break;
+						break;
 				}
-				pthread_mutex_lock(&etang.objet[i][j].mutObj);
+
+				pthread_mutex_unlock(&etang.objet[i][j].mutObj); /*il y avait lock au lieu de unlock*/
 				sleep(3);
 				pthread_mutex_lock(&act);
 				action=BOUGE;
@@ -463,15 +464,15 @@ int main(int argc, char * argv []){
 	
 	simulation_initialiser();
 	
-	abouge=0;
+	abouge = 0;
 	fen_box_sim = creer_fenetre_box_sim();
-	fen_sim = creer_fenetre_sim();
+	fen_sim     = creer_fenetre_sim();
 	fen_box_msg = creer_fenetre_box_msg();
-	fen_msg = creer_fenetre_msg();
+	fen_msg     = creer_fenetre_msg();
 	
 	
 	statut = pthread_create(&gerant, NULL, GestionPref, NULL);
-	statut=pthread_create(&affiche, NULL,affichage,NULL);
+	statut = pthread_create(&affiche, NULL,affichage,NULL);
 	
 	for(i=0;i<max_poiss/5;i++){
 		obj=(objet_t*)malloc(sizeof(objet_t));
