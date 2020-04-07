@@ -13,8 +13,12 @@
 #define BOUGE 1
 #define AFFICHE 2
 
+typedef struct c {
+	int x,y;
+} coord_t;
+
 int max_poiss,nbpoiss,actPoiss=0;
-int abouge,boucle=1;
+int * abouge,boucle=1;
 pthread_mutex_t poissons = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t abouges = PTHREAD_MUTEX_INITIALIZER;
 int * enfuite, *libre; /*malloc dans le prog principal*/
@@ -31,6 +35,12 @@ joueur_t joueur;
 
 grille_t etang;
 
+void afficheMsgFen(WINDOW* win,char* c) {
+	
+    (wprintw(win, c);
+	sleep(10);
+    wrefresh(win);
+}
 void simulation_initialiser() {
 	int i, j;
 	
@@ -56,69 +66,70 @@ void simulation_initialiser() {
 void simulation_stopper() {
 	int i;
 	
-	for (i = 0; i <max_poiss; i++) {
-		if (threads_poissons[i] != NULL) {
-			pthread_cancel(*threads_poissons[i]);
-			threads_poissons[i] = 0;
-		}
+	pthread_mutex_lock(&poissons);
+	for(i=0;i<nbpoiss;i++){
+		pthread_cancel(*threads_poissons[i]);
+		free(threads_poissons[i]);
 	}
+	pthread_mutex_unlock(&poissons);
 	free(threads_poissons);
+	free(abouge);
+	for(i=0;i<etang.hauteur;i++){
+		free(etang.objet[i]);
+	}
+	free(etang.objet);
+	free(fen_msg);
+	free(fen_sim);
+	free(fen_box_msg);
+	free(fen_box_sim);
 }
 
-WINDOW *creer_fenetre_box_sim() {
+void creer_fenetre_box_sim() {
 /*Creation de la fenetre de contour de la fenetre de simulation */
-
-	WINDOW *fen_box_sim;
 	
 	fen_box_sim = newwin(etang.hauteur + 2, etang.largeur + 2, 0, 0);
+	
 	box(fen_box_sim, 0, 0);
-	mvwprintw(fen_box_sim, 0, (etang.largeur + 2) / 2 - 5, "SIMULATION");	
+	
+	wbkgd(fen_box_sim, COLOR_PAIR(1));
+	
+	afficheMsgFen(fen_box_sim,"SIMULATION");
+	
+	/* mvwprintw(fen_box_sim, 0, (etang.largeur + 2) / 2 - 5, "SIMULATION");	
+	*/
 	wrefresh(fen_box_sim);
 	
-	return fen_box_sim;
 }
 
-WINDOW *creer_fenetre_sim() {
+void creer_fenetre_sim() {
 /* Creation de la fenetre de simulation dans la fenetre de contour */
 /* La simulation est affichee dans cette fenetre */
-
-	WINDOW *fen_sim;
-	
-	fen_sim = newwin(etang.hauteur, etang.largeur, 1, 1);
+	fen_sim = subwin(fen_box_sim,etang.hauteur, etang.largeur, 1, 1);
 	/* Colore le fond de la fenêtre */
     wbkgd(fen_sim, COLOR_PAIR(4));
     wrefresh(fen_sim);
-	
-	return fen_sim;
 }
 
-WINDOW *creer_fenetre_box_msg() {
+void creer_fenetre_box_msg() {
 /* Creation de la fenetre de contour de la fenetre de messages */
-
-	WINDOW *fen_box_msg;
-	
 	fen_box_msg = newwin(10 + 2, 20 + 2, 0, etang.largeur + 2);
 	box(fen_box_msg, 0, 0);
+	wbkgd(fen_box_msg, COLOR_PAIR(1));
 	mvwprintw(fen_box_msg, 0, (etang.largeur + 2) / 2 - 4, "MESSAGES");
 	wrefresh(fen_box_msg);
-	
-	return fen_box_msg;
 }
 
-WINDOW *creer_fenetre_msg() {
+void creer_fenetre_msg() {
 /* Creation de la fenetre de messages dans la fenetre de contour */
 /* Les messages indicatifs des evenements de la simulation et de l'interface */
 /* utilisateur sont affiches dans cete fenetre */
-
-	WINDOW *fen_msg;
-	
-	fen_msg = newwin(10, 20, 1, etang.largeur + 3);
-	
+	fen_msg = subwin(fen_box_msg, 10,20, 1, etang.largeur + 3);
 	scrollok(fen_msg, TRUE);
 	wbkgd(fen_msg, COLOR_PAIR(4));
     wrefresh(fen_msg);
-	return fen_msg;
 }
+
+
 void* GestionPref(void* arg) {
 
 
@@ -136,61 +147,65 @@ void* GestionPref(void* arg) {
 
         /* variable débloquée */
         pthread_mutex_unlock(&act);
-        sleep(5);
+        sleep(3);
     }
 
     return NULL;
 }
 
-objet_t creerPoisson(){
+void creerPoisson(coord_t * coord){
 	int x,y,place=0,id,type;
 	
 	pthread_mutex_lock(&poissons);
 	id=nbpoiss;
+	
 	nbpoiss++;
 	pthread_mutex_unlock(&poissons);
+	
 	/*
 	pthread_mutex_lock(&mess);
 	mvwprintw(fen_msg, 0, 0, "poisson %d\n",id);    fond gris ou violet *
 	pthread_mutex_unlock(&mess); */
 	srand(time(NULL));
 	while(!place){
-		x = (rand() % etang.hauteur) ;
-		y = (rand() % etang.largeur) ;
-		pthread_mutex_lock(&etang.objet[x][y].mutObj);
-		if(etang.objet[x][y].typeObjet==VIDE){
-			etang.objet[x][y].typeObjet=POISSON;
-			etang.objet[x][y].idPoiss=id;
+		
+		y = (rand() % etang.hauteur) ;
+		x = (rand() % etang.largeur) ;
+		pthread_mutex_lock(&etang.objet[y][x].mutObj);
+		
+		if(etang.objet[y][x].typeObjet==VIDE){
+			etang.objet[y][x].typeObjet=POISSON;
+			etang.objet[y][x].idPoiss=id;
 			type=(rand () % 100);
 			if(type<50){
-				etang.objet[x][y].typePoisson=POISSON1;
+				etang.objet[y][x].typePoisson=POISSON1;
 			}
 			else if(type<80){
-				etang.objet[x][y].typePoisson=POISSON2;
+				etang.objet[y][x].typePoisson=POISSON2;
 			}
 			else{
-				etang.objet[x][y].typePoisson=POISSON3;
+				etang.objet[y][x].typePoisson=POISSON3;
 			}
 			place=1;
 		}
-		pthread_mutex_unlock(&etang.objet[x][y].mutObj);
+		pthread_mutex_unlock(&etang.objet[y][x].mutObj);
 	}
-	/* printf("poiss %d: x %d, y %d\n",id,x,y); */
-	return (etang.objet[x][y]);
+	coord->y=y;
+	coord->x=x;
 }
 
 void *routine_poisson(void *arg) {
-	objet_t *obj = (objet_t *) arg;
-	int dir, x, y, change,id;
+	coord_t *coord = (coord_t *) arg;
+	int dir, x, y, change,id,unlock=0;
     /*tableau int enfuite (-> poisson en fuite) et tab int continue (-> poisson attrapé)*/
-	sleep(5);
-	x = obj->position[0];
-	y = obj->position[1];
-	pthread_mutex_lock(&etang.objet[x][y].mutObj);
-    id=etang.objet[x][y].idPoiss;
-	pthread_mutex_unlock(&etang.objet[x][y].mutObj);
+	sleep(3);
+	y = coord->y;
+	x = coord->x;
+	pthread_mutex_lock(&etang.objet[y][x].mutObj);
+    id=etang.objet[y][x].idPoiss;
+	pthread_mutex_unlock(&etang.objet[y][x].mutObj);
 	srand(time(NULL));
-	while (1) { /*s'arrete quand il est tué ou on met une variable -> comment la modifier */
+	while (boucle) { /*s'arrete quand il est tué ou on met une variable -> comment la modifier */
 
 		/*tester s'il y a une ligne proche -> comment faire pour la fuite ?*/
 		pthread_mutex_lock(&act);
@@ -200,188 +215,184 @@ void *routine_poisson(void *arg) {
 			pthread_cond_wait(&bouge,&act);
 		}
 		pthread_mutex_unlock(&act); /*Il faut peut etre le mettre a la fin*/
-		printf("poisson %d\n",id);
-		pthread_mutex_lock(&etang.objet[y][x].mutObj);
-		/*sinon se déplacer*/
-		dir = (rand() % 4) ;
-		change = 0;
-		pthread_testcancel();
-		switch(dir) {
-			case 1:/*En haut*/
-				pthread_mutex_lock(&etang.objet[y-1][x].mutObj);
-				pthread_mutex_lock(&etang.objet[y][x].mutObj);
-				if (etang.objet[y-1][x].typeObjet == VIDE) {
-					etang.objet[y-1][x].typeObjet = obj->typeObjet;
-					etang.objet[y][x].typeObjet = VIDE;
-					etang.objet[y-1][x].threadPoisson = etang.objet[y][x].threadPoisson;
-					etang.objet[y][x].threadPoisson = 0;
-					/* envoi de la nouvelle coordonnées
-						idPoiss, position 
-					*/
-					y--;
-					change = 1;
-				}
-				if (change) {
-					pthread_mutex_unlock(&etang.objet[y][x].mutObj);
-					pthread_mutex_unlock(&etang.objet[y+1][x].mutObj);
-				}
-				else {
-					pthread_mutex_unlock(&etang.objet[y-1][x].mutObj);
-					pthread_mutex_unlock(&etang.objet[y][x].mutObj);
-				}
-				break;
-			case 2:/*A droite*/
-				pthread_mutex_lock(&etang.objet[y][x+1].mutObj);
-				pthread_mutex_lock(&etang.objet[y][x].mutObj);
-				if (etang.objet[y][x+1].typeObjet == VIDE) {
-					etang.objet[y][x+1].typeObjet = obj->typeObjet;
-					etang.objet[y][x].typeObjet = VIDE;
-					etang.objet[y][x+1].threadPoisson = etang.objet[y][x].threadPoisson;
-					etang.objet[y][x].threadPoisson = 0;
-					/* envoi de la nouvelle coordonnées
-						idPoiss, position 
-					*/
-					/*
-					mvwprintw(fen_sim, y, x, " ");  fond bleu 
-					mvwprintw(fen_sim, y+1, x, etang.objet[y][x].idPoiss);  fond jaune avec id Poisson
-					*/
-					x++;
-					change = 1;
-				}
-				if (change) {
-					pthread_mutex_unlock(&etang.objet[y][x].mutObj);
-					pthread_mutex_unlock(&etang.objet[y][x-1].mutObj);
-				}
-				else {
-					pthread_mutex_unlock(&etang.objet[y][x+1].mutObj);
-					pthread_mutex_unlock(&etang.objet[y][x].mutObj);
-				}
-				break;
-			case 3:/*En bas*/
-				pthread_mutex_lock(&etang.objet[y+1][x].mutObj);
-				pthread_mutex_lock(&etang.objet[y][x].mutObj);
-				if (etang.objet[y+1][x].typeObjet == VIDE) {
-					etang.objet[y+1][x].typeObjet = obj->typeObjet;
-					etang.objet[y][x].typeObjet = VIDE;
-					etang.objet[y+1][x].threadPoisson = etang.objet[y][x].threadPoisson;
-					etang.objet[y][x].threadPoisson = 0;
-					/* envoi de la nouvelle coordonnées
-						idPoiss, position 
-					*/
-					/*
-					mvwprintw(fen_sim, y, x, " ");  fond bleu 
-					mvwprintw(fen_sim, y+1, x, etang.objet[y][x].idPoiss);  fond jaune avec id Poisson
-					*/
-					y++;
-					change = 1;
-				}
-				if (change) {
-					pthread_mutex_unlock(&etang.objet[y][x].mutObj);
-					pthread_mutex_unlock(&etang.objet[y-1][x].mutObj);
-				}
-				else {
-					pthread_mutex_unlock(&etang.objet[y+1][x].mutObj);
-					pthread_mutex_unlock(&etang.objet[y][x].mutObj);
-				}
-				break;
-			case 4:/*A gauche*/
-				pthread_mutex_lock(&etang.objet[y][x-1].mutObj);
-				pthread_mutex_lock(&etang.objet[y][x].mutObj);
-				if (etang.objet[y][x-1].typeObjet == VIDE) {
-					etang.objet[y][x-1].typeObjet = obj->typeObjet;
-					etang.objet[y][x].typeObjet = VIDE;
-					etang.objet[y][x-1].threadPoisson = etang.objet[y][x].threadPoisson;
-					etang.objet[y][x].threadPoisson = 0;
-					/* envoi de la nouvelle coordonnées
-						idPoiss, position 
-					*/
-					/*
-					mvwprintw(fen_sim, y, x, " "); fond bleu 
-					mvwprintw(fen_sim, y+1, x, etang.objet[y][x].idPoiss);  fond jaune avec id Poisson
-					*/
-					x--;
-					change = 1;
-				}
-				if (change) {
-					pthread_mutex_unlock(&etang.objet[y][x].mutObj);
-					pthread_mutex_unlock(&etang.objet[y][x+1].mutObj);
-				}
-				else {
-					pthread_mutex_unlock(&etang.objet[y][x-1].mutObj);
-					pthread_mutex_unlock(&etang.objet[y][x].mutObj);
-				}
-				break;
-		}
-		wrefresh(fen_sim);
-		pthread_mutex_lock(&abouges);
-		abouge++;
-
-		pthread_mutex_lock(&poissons);
-		if(abouge==nbpoiss){ /* c'est le dernier poisson qui bouge qui lance l'affichage */
-			pthread_mutex_lock(&act);
-			actPoiss=AFFICHE;
-			pthread_mutex_unlock(&act);
-		}
-		pthread_mutex_unlock(&poissons);
-		pthread_mutex_unlock(&abouges);
 		
+		pthread_mutex_lock(&abouges);
+		unlock=0;
+		if(abouge[id]==0){
+			pthread_mutex_unlock(&abouges);
+			unlock=1;
+			/*sinon se déplacer*/
+			dir = (rand() % 4) ;
+			change = 0;
+			pthread_testcancel();
+			switch(dir) {
+				case 0:/*En haut*/
+					if(y!=0){
+						pthread_mutex_lock(&etang.objet[y-1][x].mutObj);
+						pthread_mutex_lock(&etang.objet[y][x].mutObj);
+						if (etang.objet[y-1][x].typeObjet == VIDE) {
+							etang.objet[y-1][x].typeObjet = etang.objet[y][x].typeObjet;
+							etang.objet[y][x].typeObjet = VIDE;
+							etang.objet[y-1][x].threadPoisson = etang.objet[y][x].threadPoisson;
+							etang.objet[y][x].threadPoisson = 0;
+							etang.objet[y-1][x].typePoisson = etang.objet[y][x].typePoisson;
+							etang.objet[y][x].typePoisson = 0;
+							/* envoi de la nouvelle coordonnées
+								idPoiss, position 
+							*/
+							y--;
+							change = 1;
+						}
+						if (change) {
+							pthread_mutex_unlock(&etang.objet[y][x].mutObj);
+							pthread_mutex_unlock(&etang.objet[y+1][x].mutObj);
+						}
+						else {
+							pthread_mutex_unlock(&etang.objet[y-1][x].mutObj);
+							pthread_mutex_unlock(&etang.objet[y][x].mutObj);
+						}
+						break;
+					}
+					
+				case 1:/*A droite*/
+					if(x<etang.largeur-1){
+						pthread_mutex_lock(&etang.objet[y][x+1].mutObj);
+						pthread_mutex_lock(&etang.objet[y][x].mutObj);
+						if (etang.objet[y][x+1].typeObjet == VIDE) {
+							etang.objet[y][x+1].typeObjet = etang.objet[y][x].typeObjet;
+							etang.objet[y][x].typeObjet = VIDE;
+							etang.objet[y][x+1].threadPoisson = etang.objet[y][x].threadPoisson;
+							etang.objet[y][x].threadPoisson = 0;
+							etang.objet[y][x+1].typePoisson = etang.objet[y][x].typePoisson;
+							etang.objet[y][x].typePoisson = 0;
+							/* envoi de la nouvelle coordonnées
+								idPoiss, position 
+							*/
+							x++;
+							change = 1;
+						}
+						if (change) {
+							pthread_mutex_unlock(&etang.objet[y][x].mutObj);
+							pthread_mutex_unlock(&etang.objet[y][x-1].mutObj);
+						}
+						else {
+							pthread_mutex_unlock(&etang.objet[y][x+1].mutObj);
+							pthread_mutex_unlock(&etang.objet[y][x].mutObj);
+						}
+						break;
+					}
+				case 2:/*En bas*/
+					if(y<etang.hauteur-1){
+						pthread_mutex_lock(&etang.objet[y+1][x].mutObj);
+						pthread_mutex_lock(&etang.objet[y][x].mutObj);
+						if (etang.objet[y+1][x].typeObjet == VIDE) {
+							etang.objet[y+1][x].typeObjet = etang.objet[y][x].typeObjet;
+							etang.objet[y][x].typeObjet = VIDE;
+							etang.objet[y+1][x].threadPoisson = etang.objet[y][x].threadPoisson;
+							etang.objet[y][x].threadPoisson = 0;
+							etang.objet[y+1][x].typePoisson = etang.objet[y][x].typePoisson;
+							etang.objet[y][x].typePoisson = 0;
+							/* envoi de la nouvelle coordonnées
+								idPoiss, position 
+							*/
+							y++;
+							change = 1;
+						}
+						if (change) {
+							pthread_mutex_unlock(&etang.objet[y][x].mutObj);
+							pthread_mutex_unlock(&etang.objet[y-1][x].mutObj);
+						}
+						else {
+							pthread_mutex_unlock(&etang.objet[y+1][x].mutObj);
+							pthread_mutex_unlock(&etang.objet[y][x].mutObj);
+						}
+						break;
+					}
+				case 3:/*A gauche*/
+					if(x!=0){
+						pthread_mutex_lock(&etang.objet[y][x-1].mutObj);
+						pthread_mutex_lock(&etang.objet[y][x].mutObj);
+						if (etang.objet[y][x-1].typeObjet == VIDE) {
+							etang.objet[y][x-1].typeObjet = etang.objet[y][x].typeObjet;
+							etang.objet[y][x].typeObjet = VIDE;
+							etang.objet[y][x-1].threadPoisson = etang.objet[y][x].threadPoisson;
+							etang.objet[y][x].threadPoisson = 0;
+							etang.objet[y][x-1].typePoisson = etang.objet[y][x].typePoisson;
+							etang.objet[y][x].typePoisson = 0;
+							/* envoi de la nouvelle coordonnées
+								idPoiss, position 
+							*/
+							x--;
+							change = 1;
+						}
+						if (change) {
+							pthread_mutex_unlock(&etang.objet[y][x].mutObj);
+							pthread_mutex_unlock(&etang.objet[y][x+1].mutObj);
+						}
+						else {
+							pthread_mutex_unlock(&etang.objet[y][x-1].mutObj);
+							pthread_mutex_unlock(&etang.objet[y][x].mutObj);
+						}
+						break;
+					}
+			}
+
+			pthread_mutex_lock(&abouges);
+			abouge[max_poiss]++;
+			abouge[id]=1;
+			pthread_mutex_lock(&poissons);
+			if(abouge[max_poiss]==nbpoiss){ /* c'est le dernier poisson qui bouge qui lance l'affichage */
+				pthread_mutex_lock(&act);
+				actPoiss=AFFICHE;
+				pthread_mutex_unlock(&act);
+			}
+
+			pthread_mutex_unlock(&poissons);
+			pthread_mutex_unlock(&abouges);
+		}
+		if(unlock==0){
+			pthread_mutex_unlock(&abouges);
+		}
 		/* c'est pas comme ça qu'on va afficher une fois par tour
 			-> bloquer threadPoiss au bout de 1 tour et afficher ?
 					si oui, comment ?*/
 	}
-	
-	free(obj);
 	return NULL;
 }
 
 void * affichage(void * arg){
 	int i,j;
-
-	while(1){
-		/* on bloque tous les mutex au départ -> pas besoin si on fait affichage tour par tour */
+	while(boucle){
+		/* on fait affichage tour par tour */
 		pthread_mutex_lock(&act);
-		/*
-		for(i=0;i<etang.hauteur;i++){
-			for(j=0;j<etang.largeur;j++){
-				pthread_mutex_lock(&etang.objet[i][j].mutObj);
-			}
-		}
-		*/
+
 		while(actPoiss != AFFICHE){
 			pthread_cond_wait(&aff, &act);
 		}
 		pthread_mutex_unlock(&act);
-		printf("Fin affichage\n");
+
 		for(i=0;i<etang.hauteur;i++){
 			for(j=0;j<etang.largeur;j++){
-				pthread_mutex_lock(&etang.objet[i][j].mutObj);
+				pthread_mutex_lock(&etang.objet[i][j].mutObj);				
 				switch(etang.objet[i][j].typeObjet){
 					case(POISSON) :
-					/*
-						mvwprintw(fen_sim, j, i, "%d",etang.objet[i][j].idPoiss); */ /* fond jaune avec id Poisson */
-						printf("%d",etang.objet[i][j].idPoiss);
+						mvwprintw(fen_sim, j, i, "%d",etang.objet[i][j].idPoiss); /* fond jaune avec id Poisson */
 						break;
 					case(REQUIN) :
 						/*tester idJoueur du requin*/
 						/* fond bleu */
 						if(etang.objet[i][j].idJoueur==joueur.idJoueur){
-							/*
-							mvwprintw(fen_sim, j, i, " "); */ /* fond vert */
-							printf("R");
+							mvwprintw(fen_sim, j, i, " ");  /* fond vert */
 						}
 						else{
-							/*
-							mvwprintw(fen_sim, j+1, i, "%d", etang.objet[i][j].idPoiss); */ /* fond jaune avec id Poisson */
-							printf("r");
+							mvwprintw(fen_sim, j+1, i, "%d", etang.objet[i][j].idPoiss);  /* fond jaune avec id Poisson */
 						}
 						/* fond jaune avec idPoiss en noir 
 							ou
 						   fond vert*/
 						break;
 					case(VIDE) :
-					/*
-						mvwprintw(fen_sim, j, i, " "); *//* fond bleu */
-						printf(" ");
+						mvwprintw(fen_sim, j, i, " "); /* fond bleu */
 						break;
 					case(DYNAMITE) :
 						/* je ne sais pas s'il y a besoin,
@@ -390,78 +401,65 @@ void * affichage(void * arg){
 					case(PNEU) :
 						/*tester idJoueur du pneu*/
 						if(etang.objet[i][j].idJoueur==joueur.idJoueur){
-							/*
-							mvwprintw(fen_sim, j+1, i, " "); *//* fond noir */
-							printf("P");
+							
+							mvwprintw(fen_sim, j+1, i, " "); /* fond noir */
 						}
 						else{
-							/*
-							mvwprintw(fen_sim, j+1, i, " ");*/ /* fond bleu */
-							printf("p");
+							mvwprintw(fen_sim, j+1, i, " "); /* fond bleu */
 						}
 						/*fond noir ou bleu selon idJ*/
 						break;
 					case(LIGNE) :
 						/*tester idJoueur de la ligne*/
 						if(etang.objet[i][j].idJoueur==joueur.idJoueur){
-							/*mvwprintw(fen_sim, j+1, i, " ");*/ /* fond gris ou violet */
-							printf("L");
+							mvwprintw(fen_sim, j+1, i, " "); /* fond gris ou violet */
 						}
 						else{
-							printf("l");/*
-							mvwprintw(fen_sim, j+1, i, " ");*/ /* fond bleu */
+							
+							mvwprintw(fen_sim, j+1, i, " "); /* fond bleu */
 						}
 						/*fond gris ou bleu selon idJ*/
 						break;
 				}
-
-				pthread_mutex_unlock(&etang.objet[i][j].mutObj); /*il y avait lock au lieu de unlock*/
-				sleep(3);
-				pthread_mutex_lock(&act);
-				actPoiss=BOUGE;
-				pthread_mutex_unlock(&act);
-			}
-			printf("\n");
-		}
-		sleep(3);
-		printf("Fin affichage\n");
-		/*
-		for(i=0;i<etang.hauteur;i++){
-			for(j=0;j<etang.largeur;j++){
-				pthread_mutex_unlock(&etang.objet[i][j].mutObj);
+				pthread_mutex_unlock(&etang.objet[i][j].mutObj); 
+				
 			}
 		}
-		*/
+		wrefresh(fen_sim);
+		pthread_mutex_lock(&abouges);
+		for(i=0;i<=max_poiss;i++){
+			abouge[i]=0;
+		}
+		pthread_mutex_unlock(&abouges);
+		pthread_mutex_lock(&act);
+		actPoiss=BOUGE;
+		pthread_mutex_unlock(&act);
 	}
+	return NULL;
 }
 
 void stopPoisson(int sig){
-    int i;
 
     if(sig== SIGINT){
         boucle=0;
+		
 		delwin(fen_box_sim);
 		delwin(fen_sim);
+		delwin(fen_box_msg);
+		delwin(fen_msg);
+		
 		simulation_stopper();
+		
 		ncurses_stopper();
-		for(i=0;i<etang.hauteur;i++){
-			free(etang.objet[i]); 
-		}
-		free(etang.objet);
-		pthread_mutex_lock(&poissons);
-		for(i=0;i<nbpoiss;i++){
-			free(threads_poissons[i]);
-		}
-		pthread_mutex_unlock(&poissons);
-		free(threads_poissons);
     }
+	exit(EXIT_SUCCESS);
 }
 
 int main(int argc, char * argv []){
 	struct sigaction action;
-	objet_t * obj;
+	coord_t * coord;
 	void * res;
-	int ch, i,j,statut;
+	int  i,j,statut;
 
     if(argc!=3){
         fprintf(stderr, "Usage : %s dimensions (L | H)\n", argv[0]);
@@ -483,53 +481,61 @@ int main(int argc, char * argv []){
     etang.hauteur=atoi(argv[2]);
     max_poiss= (etang.largeur*etang.hauteur)/5;
 
+	abouge=malloc((max_poiss+1)*sizeof(int));
 	etang.objet=malloc(sizeof(objet_t*)*etang.hauteur);
 
     for(i=0;i<etang.hauteur;i++){
         etang.objet[i]=(objet_t*)malloc(sizeof(objet_t)*etang.largeur);
 		for(j=0;j<etang.largeur;j++){
-
             etang.objet[i][j].typeObjet=VIDE;
         }
     }
 
 	simulation_initialiser();
+	pthread_mutex_lock(&abouges);
+	for(i=0;i<=max_poiss;i++){
+		abouge[i] = 0;
+	}
+	pthread_mutex_unlock(&abouges);
 	
-	abouge = 0;
-	/*
-	fen_box_sim = creer_fenetre_box_sim();
-	fen_sim     = creer_fenetre_sim();
-	fen_box_msg = creer_fenetre_box_msg();
-	fen_msg     = creer_fenetre_msg();
-	*/
+	creer_fenetre_box_sim();
+	creer_fenetre_sim();
+	creer_fenetre_box_msg();
+	creer_fenetre_msg();
+	
 	
 	statut = pthread_create(&gerant, NULL, GestionPref, NULL);
 	statut = pthread_create(&affiche, NULL,affichage,NULL);
 	actPoiss=BOUGE;
+	/* printf("max poiss %d\n",max_poiss/5); */
+	
 	for(i=0;i<max_poiss/5;i++){
-		obj=(objet_t*)malloc(sizeof(objet_t));
-		*obj=creerPoisson();
-		printf("poiss %d\n",obj->idPoiss);
-		statut=pthread_create(threads_poissons[i], NULL,routine_poisson,(void *)obj);
+		
+		coord=(coord_t*)malloc(sizeof(coord_t)); 
+		
+		creerPoisson(coord);
+		
+		statut=pthread_create(threads_poissons[i], NULL,routine_poisson,(void *)coord);
+
 		if(statut!=0){
 			printf("Pb création threadpoiss %d\n",i);
 		}
-		
 	}
-	/*
+	
 	ncurses_initialiser();
-	*/
+	
 	/* ncurses_souris(); */
 	/*
 	mvprintw(LINES - 1, 0, "Tapez F2 pour quitter");
 	wrefresh(stdscr); */
-	while((ch = getch()) != KEY_F(2) && boucle){
+	/*
+	while((ch = getch()) != KEY_F(2) && boucle){ */
 		/*gère clic pour la ligne*/
 		/* un thread pour affichage poissons 
 		et le prog principal qui gère la ligne
 			-> mutex sur fen_sim ?*/
 
-	}
+	/*} */
 
 	pthread_join(affiche,&res);
 	pthread_join(gerant,&res);
@@ -539,10 +545,9 @@ int main(int argc, char * argv []){
 
 	delwin(fen_box_sim);
 	delwin(fen_sim);
+	delwin(fen_box_msg);
+	delwin(fen_msg);
 	simulation_stopper();
 	ncurses_stopper();
-	for(i=0;i<etang.hauteur;i++){
-        free(etang.objet[i]); 
-    }
     return EXIT_SUCCESS;
 }
