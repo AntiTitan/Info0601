@@ -17,11 +17,21 @@
 #define REQUIN    2 
 #define DYNAMITE  3
 #define PNEU      4
-#define LIGNE     5
 
 #define POISSON1  1
 #define POISSON2  2
 #define POISSON3  3
+
+#define LIBRE     0
+#define BOUGE     1
+#define AFFICHE   2
+#define PECHE     3
+#define POSE      4
+
+#define HAUT 0
+#define BAS 2
+#define DROITE 1
+#define GAUCHE 3
 
 
 /* structures */
@@ -32,7 +42,9 @@ typedef struct obj{
     int idPoiss;
     int typePoisson;
     int idJoueur;
-    int idJDeux; /* au cas où deux joueurs posent leur ligne au même endroit*/
+    int idLigne1; /* au cas où deux joueurs posent leur ligne au même endroit*/
+    /*chez le joueur, sa ligne seulement sera indiquée (en idLigne1)*/
+    int idLigne2; /* au cas où deux joueurs posent leur ligne au même endroit*/
     int position [2];
     pthread_t threadPoisson; /* à ne pas envoyer */
     pthread_t threadChrono;  /* à ne pas envoyer */
@@ -55,5 +67,14 @@ typedef struct j{
     pthread_mutex_t mutJoueur;
     /*mutex et variable cond*/
 } joueur_t;
+    /* structre de coordonnées */
+typedef struct c {
+	int x,y,partie;
+} coord_t;
+
+/* structre de poisson pour le joueur */
+typedef struct c {
+	int x,y,id,type;
+} poisson_t;
 
 #endif

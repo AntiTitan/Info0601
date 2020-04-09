@@ -21,11 +21,11 @@
 /* info TCP SC*/
 #define INFO_TCP_SC  2
 /* création poisson SC*/
-#define C_POIS       3
+#define C_POISS      3
 /* fin poisson SC*/
-#define F_POIS       4
+#define F_POISS      4
 /* mouvement poisson SC*/
-#define M_POIS       5
+#define M_POISS      5
 /* pose de ligne CS*/
 #define P_LIGNE      6
 /* autorisation ou non de la pose de ligne */
@@ -57,14 +57,21 @@
 /**** une seule struct pour tous les messages ****/
 
 typedef struct message{
-    int typeMessage;
     struct sockaddr_in adresse;
     int position [2];/* position de la ligne ou des poissons ou dimensions de l'etang*/
-    int idJoueur;
+    int idPoisson;
+    int typePoisson;
+    int direction;
+
+    int typeMessage;
+    int nbPoissons;
+    int hauteur;
+    int largeur;
+
     int idPartie;
-    objet_t objet;
-    joueur_t j;
-    grille_t grille;
+    int idJoueur;
+    
+    int typeObjet;
 }message_t;
 
 typedef struct couple{

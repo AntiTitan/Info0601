@@ -28,5 +28,6 @@ int recupererSemaphores(int CLE_S);
 void videMessage(message_t*);
 void Peux(int sem,int semid);
 void Vas(int sem,int semid);
+void swap_poiss(objet_t * obj1, objet_t * obj2, int mode);
 
 #endif

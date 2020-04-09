@@ -7,22 +7,239 @@
 #include <string.h>      /* Pour memset */
 #include <unistd.h>      /* Pour close */
 #include <errno.h>       /* Pour errno */
-
+#include <ncurses.h>
+#include "ncurses.h"
 #include "struct_message.h"
 #include "fonctions_sys.h"
 
+int actJoueur,boucle=1,etatPartie=0,nbpoiss,max_poiss,*abouge;
 grille_t etang;
 joueur_t joueur;
+poisson_t * poiss;
+
+pthread_t affiche;
+pthread_t gerant;
+
+pthread_mutex_t mess =PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t abouges =PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t act =PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t etat =PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t tour =PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t poissons =PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutJ =PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutpoiss =PTHREAD_MUTEX_INITIALIZER;
+
+pthread_cond_t aff = PTHREAD_COND_INITIALIZER;
+pthread_cond_t bouge = PTHREAD_COND_INITIALIZER;
+pthread_cond_t peche = PTHREAD_COND_INITIALIZER;
+
+WINDOW *fen_sim,*fen_msg;
+WINDOW *fen_box_sim,*fen_box_msg;
+
+
+void* GestionAction(void* arg) {
+
+    while(1) {
+        pthread_mutex_lock(&act);
+        /* variable bloquée */
+
+        if (actJoueur == BOUGE) {
+            pthread_cond_broadcast(&bouge);
+        }
+
+        if (actJoueur == AFFICHE) {
+            pthread_cond_broadcast(&aff);
+        }
+
+        if (actJoueur == PECHE) {
+            pthread_cond_broadcast(&aff);
+        }
+
+        /* variable débloquée */
+        pthread_mutex_unlock(&act);
+
+        pthread_mutex_lock(&mutJ);
+        if(joueur.nbPoints==15){
+            /*arrêt clic et envoi message */
+            pthread_mutex_lock(&etat);
+            etatPartie=WIN_GAME;
+            pthread_mutex_unlock(&etat);
+        }
+        pthread_mutex_unlock(&mutJ);
+
+        pthread_mutex_lock(&etat);
+        if(etatPartie == ENDGAME){
+            /* déclanchement fin du jeu*/
+        }
+        pthread_mutex_unlock(&etat);
+        sleep(1);
+    }
+
+    return NULL;
+}
+
+void creer_fenetre_box_sim() {
+/*Creation de la fenetre de contour de la fenetre de simulation */
+	
+	fen_box_sim = newwin(etang.hauteur + 2, etang.largeur + 2, 0, 0);
+	box(fen_box_sim, 0, 0);
+	wbkgd(fen_box_sim, COLOR_PAIR(1));
+	mvwprintw(fen_box_sim, 0, 1, "SIMULATION");	
+	wrefresh(fen_box_sim);
+}
+
+void creer_fenetre_sim() {
+/* Creation de la fenetre de simulation dans la fenetre de contour */
+/* La simulation est affichee dans cette fenetre */
+	fen_sim = subwin(fen_box_sim,etang.hauteur, etang.largeur, 1, 1);
+	/* Colore le fond de la fenêtre */
+    wbkgd(fen_sim, COLOR_PAIR(2));
+    wrefresh(fen_sim);
+}
+
+void creer_fenetre_box_msg() {
+/* Creation de la fenetre de contour de la fenetre de messages */
+	fen_box_msg = newwin(15 + 2, 30 + 2, 0, etang.largeur + 2);
+	box(fen_box_msg, 0, 0);
+	wbkgd(fen_box_msg, COLOR_PAIR(1));
+	mvwprintw(fen_box_msg, 0, (etang.largeur + 2) / 2 - 4, "MESSAGES");
+	wrefresh(fen_box_msg);
+}
+
+void creer_fenetre_msg() {
+/* Creation de la fenetre de messages dans la fenetre de contour */
+/* Les messages indicatifs des evenements de la simulation et de l'interface */
+/* utilisateur sont affiches dans cete fenetre */
+	fen_msg = subwin(fen_box_msg, 15,30, 1, etang.largeur + 3);
+	scrollok(fen_msg, TRUE);
+	wbkgd(fen_msg, COLOR_PAIR(5));
+    wrefresh(fen_msg);
+}
+
+void simulation_initialiser() {
+	int i, j;
+
+	for (i = 0; i < etang.hauteur; i++) {	/* Initialisation des cases de la simulation */
+		for (j = 0; j < etang.largeur; j++) {
+			etang.objet[i][j].typeObjet = VIDE;
+			pthread_mutex_init(&etang.objet[i][j].mutObj, NULL);
+		}
+	}
+	
+}
+
+void simulation_stopper() {
+	int i;
+	
+	pthread_cancel(affiche);
+	for(i=0;i<etang.hauteur;i++){
+		free(etang.objet[i]);
+	}
+	free(etang.objet);
+	ncurses_stopper();
+	free(fen_msg);
+	free(fen_sim);
+	free(fen_box_msg);
+	free(fen_box_sim);
+}
+
+void * affichage(void * arg){
+	int i,j;
+	while(boucle){
+		/* on fait affichage tour par tour */
+		pthread_mutex_lock(&act);
+
+		while(actJoueur != AFFICHE){
+			pthread_cond_wait(&aff, &act);
+		}
+		pthread_mutex_unlock(&act);
+
+		for(i=0;i<etang.hauteur;i++){
+			for(j=0;j<etang.largeur;j++){
+				pthread_mutex_lock(&etang.objet[i][j].mutObj);				
+				switch(etang.objet[i][j].typeObjet){
+					case(POISSON) :
+						wattron(fen_sim,COLOR_PAIR(3));
+						mvwprintw(fen_sim, i, j, "%d",etang.objet[i][j].typePoisson); /* fond jaune avec type Poisson */
+						wattroff(fen_sim,COLOR_PAIR(3));
+						break;
+					case(REQUIN) :
+						/*tester idJoueur du requin*/
+						/* fond bleu */
+						if(etang.objet[i][j].idJoueur==joueur.idJoueur){
+							wattron(fen_sim,COLOR_PAIR(4));
+							mvwprintw(fen_sim, i, j, " ");  /* fond vert */
+							wattroff(fen_sim,COLOR_PAIR(4));
+						}
+						else{
+							wattron(fen_sim,COLOR_PAIR(3));
+							mvwprintw(fen_sim, i, j, "%d", etang.objet[i][j].idPoiss);  /* fond jaune avec type Poisson */
+							wattroff(fen_sim,COLOR_PAIR(3));
+						}
+						/* fond jaune avec typePoiss en noir 
+							ou
+						   fond vert*/
+						break;
+					case(VIDE) :
+						mvwprintw(fen_sim, i, j, " "); /* fond bleu */
+						break;
+					case(DYNAMITE) :
+						/* je ne sais pas s'il y a besoin,
+						 ça explose direct ou pas ?*/
+						break;
+					case(PNEU) :
+						/*tester idJoueur du pneu*/
+						if(etang.objet[i][j].idJoueur==joueur.idJoueur){
+							wattron(fen_sim,COLOR_PAIR(1));
+							mvwprintw(fen_sim, i, j, " "); /* fond noir */
+							wattroff(fen_sim,COLOR_PAIR(1));
+						}
+						else{
+							mvwprintw(fen_sim, i, j, " "); /* fond bleu */
+						}
+						/*fond noir ou bleu selon idJ*/
+						break;
+				}
+                if(etang.objet[i][j].idLigne1!=-1){
+                    if(etang.objet[i][j].idLigne1==joueur.idJoueur){
+                        wattron(fen_sim,COLOR_PAIR(5));
+						mvwprintw(fen_sim, i, j, " "); /* fond  violet */
+						wattron(fen_sim,COLOR_PAIR(5));
+                    }
+                    else{
+    					mvwprintw(fen_sim, i, j, " "); /* fond bleu */
+                    
+                    }
+                }
+				pthread_mutex_unlock(&etang.objet[i][j].mutObj); 
+				
+			}
+		}
+		wrefresh(fen_sim);
+
+        pthread_mutex_lock(&abouges);
+        for(i=0;i<=max_poiss;i++){
+            abouge[i]=0;
+        }
+        pthread_mutex_unlock(&abouges);
+
+		pthread_mutex_lock(&act);
+		actJoueur=LIBRE;
+		pthread_mutex_unlock(&act);
+	}
+	return NULL;
+}
 
 int main (int argc, char * argv []){
 
 /*déclarations*/
 
-    int sockfdUDP, sockfdTCP,i,j;
+    int sockfdUDP, sockfdTCP,i,j,statut;
     struct sockaddr_in adresseServeurUDP , adresseServeurTCP;
     message_t reqUDP,repUDP;
     message_t reqTCP,repTCP;
     int numPartie,semid;
+    int idTemp,x,y,trouve;
 
 /*vérification des arguments
     adresse IP
@@ -53,27 +270,28 @@ int main (int argc, char * argv []){
         perror("Erreur lors de la conversion de l'adresse ");
         exit(EXIT_FAILURE);
     }
-        /* Envoi du message */
+        /* Envoi du message UDP */
     if(sendto(sockfdUDP, &reqUDP, sizeof(message_t), 0, (struct sockaddr*)&adresseServeurUDP, sizeof(struct sockaddr_in)) == -1) {
         perror("Erreur lors de l'envoi du message ");
         exit(EXIT_FAILURE);
     }
-    printf("Client : message envoyé.\n");
 
 /*reception des informations TCP*/
 
-        /* Attente de la reponse du serveur */
+        /* Attente de la reponse du serveur UDP */
     if(recvfrom(sockfdUDP, &repUDP, sizeof(message_t), 0, NULL, NULL) == -1) {
       perror("Erreur lors de la réception du message ");
       exit(EXIT_FAILURE);
     }
-
+    /*
     if(repUDP.typeMessage != INFO_TCP_SC){
-        printf("Mauvais type de message\nRequete ignorée\n");
+        printf("Mauvais type de message\nRequete ignorée\nExtinction\n");
     }
     else{
         printf("Info TCP reçues\n");
     }
+     XXX */
+
     adresseServeurTCP = repUDP.adresse;
     numPartie= repUDP.idPartie;
         /* Création de la socket TCP */
@@ -100,22 +318,28 @@ int main (int argc, char * argv []){
       perror("Erreur lors de l'envoi du message ");
       exit(EXIT_FAILURE);
     }
-    printf("Client : message TCP envoyé.\n");
 
     if(read(sockfdTCP, &repTCP, sizeof(message_t)) == -1) {
       perror("Erreur lors de la lecture de la taille du message ");
       exit(EXIT_FAILURE);
     }
-    printf("Client : message TCP recu.\n");
     if(repTCP.typeMessage==GAME){
         printf("Bon type !\n");
     }
     /*reception des données de la partie -> joueur et grille*/
     joueur.idJoueur=repTCP.idJoueur;
-    printf("Je suis le joueur %d !\n",joueur.idJoueur);
-    etang.largeur=repTCP.grille.largeur;
-    etang.hauteur=repTCP.grille.hauteur;
-    etang.objet=malloc(sizeof(objet_t)*etang.hauteur);
+    max_poiss=repTCP.nbPoissons;
+
+    poiss=malloc(sizeof(poisson_t)*max_poiss);
+    abouge=malloc(sizeof(int)*(max_poiss+1));
+    for(i=0;i<max_poiss;i++){
+        poiss[i].id=-1;
+        abouge[i]=0;
+    }
+    abouge[max_poiss]=0;
+    etang.largeur=repTCP.largeur;
+    etang.hauteur=repTCP.hauteur;
+    etang.objet=malloc(sizeof(objet_t *)*etang.hauteur);
 
     /*création locale de la grille*/
 
@@ -123,42 +347,193 @@ int main (int argc, char * argv []){
         etang.objet[i]=malloc(sizeof(objet_t)*etang.largeur);
         for(j=0;j<etang.largeur;j++){
             etang.objet[i][j].typeObjet=VIDE;
+            etang.objet[i][j].idLigne1=-1;
         }
     }
-    printf("etang h: %d, l: %d\n",etang.hauteur, etang.largeur);
-
-    for(i=0;i<etang.hauteur;i++){
-        for(j=0;j<etang.largeur;j++){
-            printf("%d ",etang.objet[i][j].typeObjet);
-        }
-        printf("\n");
-    }
-    printf("ici lol\n");
+    /*
     if(read(sockfdTCP, &repTCP, sizeof(message_t)) == -1) {
       perror("Erreur lors de la lecture de la taille du message ");
       exit(EXIT_FAILURE);
     }
     printf("Reception %d : type message %d\n",joueur.idJoueur,repTCP.typeMessage);
     
-    reqTCP.typeMessage=ENDGAME;
-    reqTCP.idJoueur=joueur.idJoueur;
+    reqTCP.typeMessage=GAME;
     if(write(sockfdTCP, &reqTCP , sizeof(message_t)) == -1) {
       perror("Erreur lors de l'envoi du message ");
       exit(EXIT_FAILURE);
     }
-    printf("Envoi endgame %d\n",joueur.idJoueur);
+    */
+
     /* remplissage de l'étang avec des poissons */
     /* reception du nombre de poissons */
 
     /* reception de tous les poissons */
 
-    /*début de partie -> tant que pas fin du jeu (ou deconnexion -> à gérer)*/
+    simulation_initialiser();
+	ncurses_initialiser();
+	ncurses_couleurs();
 
+    creer_fenetre_box_sim();
+	creer_fenetre_sim();
+	creer_fenetre_box_msg();
+	creer_fenetre_msg();
+
+    statut = pthread_create(&gerant, NULL, GestionAction, NULL);
+	statut = pthread_create(&affiche, NULL,affichage,NULL); 
+    /* XXX thread clic ->enverra mess aux serveurs quand pose et remontée ligne*/
+	actJoueur=LIBRE; /* XXX */
+
+    /*début de partie -> tant que pas fin du jeu (ou deconnexion -> à gérer)*/
+    while(boucle){
         /*attente de messages du serveur -> thread affichage*/
-        
+        if(read(sockfdTCP, &repTCP, sizeof(message_t)) == -1) {
+            perror("Erreur lors de la lecture de la taille du message ");
+            exit(EXIT_FAILURE);
+        }  
+        switch(repTCP.typeMessage){
+            /*resultat pêche */
+            case (PRISE): 
+                pthread_mutex_lock(&mutJ);
+                switch(repTCP.typeObjet){
+                    case(POISSON):
+                        switch(repTCP.typePoisson){
+                            case(1):
+                            joueur.poireaus+=100;
+                            break;
+                            case(2):
+                            joueur.poireaus+=200;
+                            break;
+                            case(3):
+                            joueur.poireaus+=500;
+                            break;
+                        }
+                        joueur.nbPoints+=1;
+                    break;
+                    case(PNEU):
+                    /* est bloqué -> envoi msg fin pneu*/
+                    break;
+                    case(DYNAMITE):
+                    /* est bloqué -> envoi msg fin dyn*/
+                    break;
+                    case(REQUIN):
+                        joueur.nbPoints-=1;
+                        joueur.poireaus-=100;
+                    break;
+                }
+                pthread_mutex_unlock(&mutJ);
+            break;
+
+            /*creation poiss (id,x,y,type) -> changement nbPoiss et ajout dans poiss[] */
+            case (C_POISS):
+                pthread_mutex_lock(&mutpoiss);
+                pthread_mutex_lock(&poissons);
+                poiss[nbpoiss].id=repTCP.idPoisson;
+                poiss[nbpoiss].x=repTCP.position[1];
+                poiss[nbpoiss].y=repTCP.position[0];
+                poiss[nbpoiss].type=repTCP.typePoisson;
+                nbpoiss++;
+                pthread_mutex_unlock(&poissons);
+                pthread_mutex_unlock(&mutpoiss);
+            break;
+
+            /*mouvements poiss -> les poiss
+                chaque poiss -> idPoiss + nouvelle position
+                on accède au poisson id (ancienne pos) -> accès à la case ancienne pos
+                changement de etang et poisson
+            */
+            case (M_POISS): 
+                pthread_mutex_lock(&mutpoiss);
+                pthread_mutex_lock(&poissons);
+                idTemp=repTCP.idPoisson;
+                trouve=0;
+                while(!trouve && j<nbpoiss){
+                    if(poiss[j].id==repTCP.idPoisson){
+                        trouve=1;
+                    }
+                    else{
+                        j++;
+                    }
+                }
+                y=poiss[j].y;
+                x=poiss[j].x;
+                pthread_mutex_lock(&etang.objet[y][x].mutObj);
+                switch(repTCP.direction){
+                    
+                    case HAUT :
+                        pthread_mutex_lock(&etang.objet[y-1][x].mutObj);
+                        swap_poiss(&etang.objet[y][x],&etang.objet[y-1][x],0);
+                        pthread_mutex_unlock(&etang.objet[y-1][x].mutObj);
+                        
+                    break;
+                    case BAS:
+                        pthread_mutex_lock(&etang.objet[y+1][x].mutObj);
+                        swap_poiss(&etang.objet[y][x],&etang.objet[y+1][x],0);
+                        pthread_mutex_unlock(&etang.objet[y+1][x].mutObj);
+                    break;
+                    case DROITE:
+                        pthread_mutex_lock(&etang.objet[y][x+1].mutObj);
+                        swap_poiss(&etang.objet[y][x],&etang.objet[y][x+1],0);
+                        pthread_mutex_unlock(&etang.objet[y][x+1].mutObj);
+                    break;
+                    case GAUCHE:
+                        pthread_mutex_lock(&etang.objet[y][x-1].mutObj);
+                        swap_poiss(&etang.objet[y][x],&etang.objet[y][x-1],0);
+                        pthread_mutex_unlock(&etang.objet[y][x-1].mutObj);
+                    break;
+                }
+                pthread_mutex_lock(&abouges);
+                abouge[idTemp]=1;
+                abouge[max_poiss]++;
+                if(abouge[max_poiss]==nbpoiss){
+                    actJoueur=AFFICHE;
+                }
+                pthread_mutex_unlock(&abouges);
+                pthread_mutex_unlock(&etang.objet[y][x].mutObj);
+                pthread_mutex_unlock(&poissons);
+                pthread_mutex_unlock(&mutpoiss);
+            break;
+
+            /*fin poisson (id)*/
+            case (F_POISS): 
+                pthread_mutex_lock(&mutpoiss);
+                idTemp=repTCP.idPoisson;
+                trouve=0;
+                while(!trouve && j<nbpoiss){
+                    if(poiss[j].id==repTCP.idPoisson){
+                        trouve=1;
+                    }
+                    else{
+                        j++;
+                    }
+                }
+                y=poiss[j].y;
+                x=poiss[j].x;
+                poiss[j].id=-1;
+                poiss[j].type=0;
+                poiss[j].y=-1;
+                poiss[j].x=-1;
+                pthread_mutex_lock(&etang.objet[y][x].mutObj);
+                kill_poiss(&etang.objet[y][x] , 0);
+                pthread_mutex_unlock(&etang.objet[y][x].mutObj);
+                pthread_mutex_unlock(&mutpoiss);
+            break;
+
+            /*fin du jeu */
+            case (ENDGAME): 
+            break;
+            
+
+    
+            
+            
+
+            
+        }
+    }
+    
         /*pose de la ligne -> envoi message au serveur*/
 
-        /*remonte la ligne -> debut chrono du tour et envoi message*/
+            /*remonte la ligne -> debut chrono du tour et envoi message*/
         /*message du serveur -> attend la prise et réagit*/
 
         /*pose d'objet -> envoi message*/

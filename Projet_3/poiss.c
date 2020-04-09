@@ -35,12 +35,6 @@ joueur_t joueur;
 
 grille_t etang;
 
-void afficheMsgFen(WINDOW* win,char* c) {
-	
-    (wprintw(win, c);
-	sleep(10);
-    wrefresh(win);
-}
 void simulation_initialiser() {
 	int i, j;
 	
@@ -56,11 +50,7 @@ void simulation_initialiser() {
 			pthread_mutex_init(&etang.objet[i][j].mutObj, NULL);
 		}
 	}
-	/* Definition de la palette */
-    init_pair(1, COLOR_WHITE, COLOR_BLACK);
-    init_pair(2, COLOR_WHITE, COLOR_RED);
-    init_pair(3, COLOR_WHITE, COLOR_BLUE);
-    init_pair(4, COLOR_BLUE, COLOR_WHITE);
+	
 }
 
 void simulation_stopper() {
@@ -72,6 +62,8 @@ void simulation_stopper() {
 		free(threads_poissons[i]);
 	}
 	pthread_mutex_unlock(&poissons);
+	pthread_cancel(affiche);
+	pthread_cancel(gerant);
 	free(threads_poissons);
 	free(abouge);
 	for(i=0;i<etang.hauteur;i++){
@@ -88,17 +80,10 @@ void creer_fenetre_box_sim() {
 /*Creation de la fenetre de contour de la fenetre de simulation */
 	
 	fen_box_sim = newwin(etang.hauteur + 2, etang.largeur + 2, 0, 0);
-	
 	box(fen_box_sim, 0, 0);
-	
 	wbkgd(fen_box_sim, COLOR_PAIR(1));
-	
-	afficheMsgFen(fen_box_sim,"SIMULATION");
-	
-	/* mvwprintw(fen_box_sim, 0, (etang.largeur + 2) / 2 - 5, "SIMULATION");	
-	*/
+	mvwprintw(fen_box_sim, 0, 1, "SIMULATION");	
 	wrefresh(fen_box_sim);
-	
 }
 
 void creer_fenetre_sim() {
@@ -106,13 +91,13 @@ void creer_fenetre_sim() {
 /* La simulation est affichee dans cette fenetre */
 	fen_sim = subwin(fen_box_sim,etang.hauteur, etang.largeur, 1, 1);
 	/* Colore le fond de la fenêtre */
-    wbkgd(fen_sim, COLOR_PAIR(4));
+    wbkgd(fen_sim, COLOR_PAIR(2));
     wrefresh(fen_sim);
 }
 
 void creer_fenetre_box_msg() {
 /* Creation de la fenetre de contour de la fenetre de messages */
-	fen_box_msg = newwin(10 + 2, 20 + 2, 0, etang.largeur + 2);
+	fen_box_msg = newwin(15 + 2, 30 + 2, 0, etang.largeur + 2);
 	box(fen_box_msg, 0, 0);
 	wbkgd(fen_box_msg, COLOR_PAIR(1));
 	mvwprintw(fen_box_msg, 0, (etang.largeur + 2) / 2 - 4, "MESSAGES");
@@ -123,9 +108,9 @@ void creer_fenetre_msg() {
 /* Creation de la fenetre de messages dans la fenetre de contour */
 /* Les messages indicatifs des evenements de la simulation et de l'interface */
 /* utilisateur sont affiches dans cete fenetre */
-	fen_msg = subwin(fen_box_msg, 10,20, 1, etang.largeur + 3);
+	fen_msg = subwin(fen_box_msg, 15,30, 1, etang.largeur + 3);
 	scrollok(fen_msg, TRUE);
-	wbkgd(fen_msg, COLOR_PAIR(4));
+	wbkgd(fen_msg, COLOR_PAIR(5));
     wrefresh(fen_msg);
 }
 
@@ -147,7 +132,7 @@ void* GestionPref(void* arg) {
 
         /* variable débloquée */
         pthread_mutex_unlock(&act);
-        sleep(3);
+        sleep(1);
     }
 
     return NULL;
@@ -190,6 +175,10 @@ void creerPoisson(coord_t * coord){
 		}
 		pthread_mutex_unlock(&etang.objet[y][x].mutObj);
 	}
+	pthread_mutex_lock(&mess);
+	mvwprintw(fen_msg,id,0,"poiss %d, pos (%d,%d), t %d\n",id,x,y,type);
+	wrefresh(fen_msg);
+	pthread_mutex_unlock(&mess);
 	coord->y=y;
 	coord->x=x;
 }
@@ -227,7 +216,7 @@ void *routine_poisson(void *arg) {
 			pthread_testcancel();
 			switch(dir) {
 				case 0:/*En haut*/
-					if(y!=0){
+					if(y>0){
 						pthread_mutex_lock(&etang.objet[y-1][x].mutObj);
 						pthread_mutex_lock(&etang.objet[y][x].mutObj);
 						if (etang.objet[y-1][x].typeObjet == VIDE) {
@@ -237,6 +226,8 @@ void *routine_poisson(void *arg) {
 							etang.objet[y][x].threadPoisson = 0;
 							etang.objet[y-1][x].typePoisson = etang.objet[y][x].typePoisson;
 							etang.objet[y][x].typePoisson = 0;
+							etang.objet[y-1][x].idPoiss = etang.objet[y][x].idPoiss;
+							etang.objet[y][x].idPoiss = -1;
 							/* envoi de la nouvelle coordonnées
 								idPoiss, position 
 							*/
@@ -265,6 +256,9 @@ void *routine_poisson(void *arg) {
 							etang.objet[y][x].threadPoisson = 0;
 							etang.objet[y][x+1].typePoisson = etang.objet[y][x].typePoisson;
 							etang.objet[y][x].typePoisson = 0;
+
+							etang.objet[y][x+1].idPoiss = etang.objet[y][x].idPoiss;
+							etang.objet[y][x].idPoiss = -1;
 							/* envoi de la nouvelle coordonnées
 								idPoiss, position 
 							*/
@@ -292,6 +286,8 @@ void *routine_poisson(void *arg) {
 							etang.objet[y][x].threadPoisson = 0;
 							etang.objet[y+1][x].typePoisson = etang.objet[y][x].typePoisson;
 							etang.objet[y][x].typePoisson = 0;
+							etang.objet[y+1][x].idPoiss = etang.objet[y][x].idPoiss;
+							etang.objet[y][x].idPoiss = -1;
 							/* envoi de la nouvelle coordonnées
 								idPoiss, position 
 							*/
@@ -319,6 +315,8 @@ void *routine_poisson(void *arg) {
 							etang.objet[y][x].threadPoisson = 0;
 							etang.objet[y][x-1].typePoisson = etang.objet[y][x].typePoisson;
 							etang.objet[y][x].typePoisson = 0;
+							etang.objet[y][x-1].idPoiss = etang.objet[y][x].idPoiss;
+							etang.objet[y][x].idPoiss = -1;
 							/* envoi de la nouvelle coordonnées
 								idPoiss, position 
 							*/
@@ -376,23 +374,29 @@ void * affichage(void * arg){
 				pthread_mutex_lock(&etang.objet[i][j].mutObj);				
 				switch(etang.objet[i][j].typeObjet){
 					case(POISSON) :
-						mvwprintw(fen_sim, j, i, "%d",etang.objet[i][j].idPoiss); /* fond jaune avec id Poisson */
+						wattron(fen_sim,COLOR_PAIR(3));
+						mvwprintw(fen_sim, i, j, "%d",etang.objet[i][j].typePoisson); /* fond jaune avec type Poisson */
+						wattroff(fen_sim,COLOR_PAIR(3));
 						break;
 					case(REQUIN) :
 						/*tester idJoueur du requin*/
 						/* fond bleu */
 						if(etang.objet[i][j].idJoueur==joueur.idJoueur){
-							mvwprintw(fen_sim, j, i, " ");  /* fond vert */
+							wattron(fen_sim,COLOR_PAIR(4));
+							mvwprintw(fen_sim, i, j, " ");  /* fond vert */
+							wattroff(fen_sim,COLOR_PAIR(4));
 						}
 						else{
-							mvwprintw(fen_sim, j+1, i, "%d", etang.objet[i][j].idPoiss);  /* fond jaune avec id Poisson */
+							wattron(fen_sim,COLOR_PAIR(3));
+							mvwprintw(fen_sim, i, j, "%d", etang.objet[i][j].idPoiss);  /* fond jaune avec type Poisson */
+							wattroff(fen_sim,COLOR_PAIR(3));
 						}
-						/* fond jaune avec idPoiss en noir 
+						/* fond jaune avec typePoiss en noir 
 							ou
 						   fond vert*/
 						break;
 					case(VIDE) :
-						mvwprintw(fen_sim, j, i, " "); /* fond bleu */
+						mvwprintw(fen_sim, i, j, " "); /* fond bleu */
 						break;
 					case(DYNAMITE) :
 						/* je ne sais pas s'il y a besoin,
@@ -401,22 +405,25 @@ void * affichage(void * arg){
 					case(PNEU) :
 						/*tester idJoueur du pneu*/
 						if(etang.objet[i][j].idJoueur==joueur.idJoueur){
-							
-							mvwprintw(fen_sim, j+1, i, " "); /* fond noir */
+							wattron(fen_sim,COLOR_PAIR(1));
+							mvwprintw(fen_sim, i, j, " "); /* fond noir */
+							wattroff(fen_sim,COLOR_PAIR(1));
 						}
 						else{
-							mvwprintw(fen_sim, j+1, i, " "); /* fond bleu */
+							mvwprintw(fen_sim, i, j, " "); /* fond bleu */
 						}
 						/*fond noir ou bleu selon idJ*/
 						break;
 					case(LIGNE) :
 						/*tester idJoueur de la ligne*/
 						if(etang.objet[i][j].idJoueur==joueur.idJoueur){
-							mvwprintw(fen_sim, j+1, i, " "); /* fond gris ou violet */
+							wattron(fen_sim,COLOR_PAIR(5));
+							mvwprintw(fen_sim, i, j, " "); /* fond gris ou violet */
+							wattron(fen_sim,COLOR_PAIR(5));
 						}
 						else{
 							
-							mvwprintw(fen_sim, j+1, i, " "); /* fond bleu */
+							mvwprintw(fen_sim, i, j, " "); /* fond bleu */
 						}
 						/*fond gris ou bleu selon idJ*/
 						break;
@@ -492,6 +499,9 @@ int main(int argc, char * argv []){
     }
 
 	simulation_initialiser();
+	ncurses_initialiser();
+	ncurses_couleurs();
+	
 	pthread_mutex_lock(&abouges);
 	for(i=0;i<=max_poiss;i++){
 		abouge[i] = 0;
@@ -522,7 +532,7 @@ int main(int argc, char * argv []){
 		}
 	}
 	
-	ncurses_initialiser();
+	
 	
 	/* ncurses_souris(); */
 	/*

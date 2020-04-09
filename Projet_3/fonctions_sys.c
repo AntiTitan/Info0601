@@ -130,3 +130,33 @@ void Vas(int sem, int semid) {
     }
     
 }
+
+void swap_poiss(objet_t * obj1, objet_t * obj2, int mode){
+                   /* ancien */   /*nouveau*/
+    /*test ligne -> lignes ne bougent pas : le type change ou pas*/
+    /* echange type obj*/
+    obj2->typeObjet=obj1->typeObjet;
+    obj1->typeObjet=VIDE;
+    /* echange type poiss*/
+    obj2->typePoisson=obj1->typePoisson;
+    obj1->typePoisson=0;
+    /* echange id poiss*/
+    obj2->idPoiss=obj1->idPoiss;
+    obj1->idPoiss=-1;
+    /* echange thread poiss*/
+    if(mode == 1){ /* si on est dans le serveur */
+        obj2->threadPoisson=obj1->threadPoisson;
+        obj1->threadPoisson=0;
+    }
+}
+
+void kill_poiss(objet_t * obj, int mode){
+                   /* ancien */   /*nouveau*/
+    obj->typeObjet=VIDE;
+    obj->idPoiss=-1;
+    obj->typePoisson=0;
+    /* echange thread poiss*/
+    if(mode == 1){ /* si on est dans le serveur */
+        pthread_cancel(obj->threadPoisson);
+    }
+}
