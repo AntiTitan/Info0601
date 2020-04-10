@@ -11,6 +11,7 @@ int fdTCP;
 int largeur, hauteur;
 int max_poiss,nbpoiss[MAX_PARTIE],actPoiss[MAX_PARTIE];
 int * abouge [MAX_PARTIE];
+int socketJ [MAX_JOUEURS];
 grille_t etang [MAX_PARTIE];
 
 pthread_t threadTCP[MAX_PARTIE];
@@ -22,8 +23,8 @@ pthread_mutex_t poissons [MAX_PARTIE];
 pthread_mutex_t abouges [MAX_PARTIE];
 pthread_mutex_t act [MAX_PARTIE];
 pthread_mutex_t tour [MAX_PARTIE];
+pthread_mutex_t sock[MAX_PARTIE];
 
-pthread_cond_t aff [MAX_PARTIE];
 pthread_cond_t bouge [MAX_PARTIE];
 pthread_cond_t pose [MAX_PARTIE];
 pthread_cond_t peche [MAX_PARTIE];
@@ -38,8 +39,12 @@ void* GestionAction(void* arg) {
             pthread_cond_broadcast(&bouge[*partie]);
         }
 
-        if (actPoiss[*partie] == AFFICHE) {
-            pthread_cond_broadcast(&aff[*partie]);
+        if (actPoiss[*partie] == POSE) {
+            pthread_cond_broadcast(&pose[*partie]);
+        }
+
+        if (actPoiss[*partie] == PECHE) {
+            pthread_cond_broadcast(&peche[*partie]);
         }
 
         /* variable débloquée */
@@ -52,6 +57,7 @@ void* GestionAction(void* arg) {
 
 void creerPoisson(coord_t * coord){
 	int x,y,place=0,id,type,partie;
+    message_t msg;
     partie=coord->partie;
 	pthread_mutex_lock(&poissons[partie]);
 	id=nbpoiss[partie];
@@ -64,6 +70,7 @@ void creerPoisson(coord_t * coord){
 	mvwprintw(fen_msg, 0, 0, "poisson %d\n",id);    fond gris ou violet *
 	pthread_mutex_unlock(&mess); */
 	srand(time(NULL));
+    
 	while(!place){
 		
 		y = (rand() % hauteur) ;
@@ -86,6 +93,18 @@ void creerPoisson(coord_t * coord){
 			place=1;
 		}
 		pthread_mutex_unlock(&etang[partie].objet[y][x].mutObj);
+        msg.typeMessage=C_POISS;
+        msg.idPoisson=id;
+        msg.position[0]=y;
+        msg.position[1]=x;
+        pthread_mutex_lock(&sock[partie]);
+        if(write(socketJ[partie*2],&msg,sizeof(message_t))==-1){
+            perror("Erreur lors de l'envoi de M_POISS au joueur\n");
+        }
+        if(write(socketJ[partie*2+1],&msg,sizeof(message_t))==-1){
+            perror("Erreur lors de l'envoi de M_POISS au joueur\n");
+        }
+        pthread_mutex_unlock(&sock[partie]);
 	}
 	coord->y=y;
 	coord->x=x;
@@ -93,6 +112,7 @@ void creerPoisson(coord_t * coord){
 
 void *routine_poisson(void *arg) {
 	coord_t *coord = (coord_t *) arg;
+    message_t msg;
 	int dir, x, y, change,id,unlock=0,partie;
     /*tableau int enfuite (-> poisson en fuite) et tab int continue (-> poisson attrapé)*/
 	sleep(3);
@@ -135,6 +155,17 @@ void *routine_poisson(void *arg) {
 							*/
 							y--;
 							change = 1;
+                            msg.typeMessage=M_POISS;
+                            msg.idPoisson=id;
+                            msg.direction=HAUT;
+                            pthread_mutex_lock(&sock[partie]);
+                            if(write(socketJ[partie*2],&msg,sizeof(message_t))==-1){
+                                perror("Erreur lors de l'envoi de M_POISS au joueur\n");
+                            }
+                            if(write(socketJ[partie*2+1],&msg,sizeof(message_t))==-1){
+                                perror("Erreur lors de l'envoi de M_POISS au joueur\n");
+                            }
+                            pthread_mutex_unlock(&sock[partie]);
 						}
 						if (change) {
 							pthread_mutex_unlock(&etang[partie].objet[y][x].mutObj);
@@ -158,6 +189,17 @@ void *routine_poisson(void *arg) {
 							*/
 							x++;
 							change = 1;
+                            msg.typeMessage=M_POISS;
+                            msg.idPoisson=id;
+                            msg.direction=DROITE;
+                            pthread_mutex_lock(&sock[partie]);
+                            if(write(socketJ[partie*2],&msg,sizeof(message_t))==-1){
+                                perror("Erreur lors de l'envoi de M_POISS au joueur\n");
+                            }
+                            if(write(socketJ[partie*2+1],&msg,sizeof(message_t))==-1){
+                                perror("Erreur lors de l'envoi de M_POISS au joueur\n");
+                            }
+                            pthread_mutex_unlock(&sock[partie]);
 						}
 						if (change) {
 							pthread_mutex_unlock(&etang[partie].objet[y][x].mutObj);
@@ -180,6 +222,17 @@ void *routine_poisson(void *arg) {
 							*/
 							y++;
 							change = 1;
+                            msg.typeMessage=M_POISS;
+                            msg.idPoisson=id;
+                            msg.direction=BAS;
+                            pthread_mutex_lock(&sock[partie]);
+                            if(write(socketJ[partie*2],&msg,sizeof(message_t))==-1){
+                                perror("Erreur lors de l'envoi de M_POISS au joueur\n");
+                            }
+                            if(write(socketJ[partie*2+1],&msg,sizeof(message_t))==-1){
+                                perror("Erreur lors de l'envoi de M_POISS au joueur\n");
+                            }
+                            pthread_mutex_unlock(&sock[partie]);
 						}
 						if (change) {
 							pthread_mutex_unlock(&etang[partie].objet[y][x].mutObj);
@@ -202,6 +255,17 @@ void *routine_poisson(void *arg) {
 							*/
 							x--;
 							change = 1;
+                            msg.typeMessage=M_POISS;
+                            msg.idPoisson=id;
+                            msg.direction=GAUCHE;
+                            pthread_mutex_lock(&sock[partie]);
+                            if(write(socketJ[partie*2],&msg,sizeof(message_t))==-1){
+                                perror("Erreur lors de l'envoi de M_POISS au joueur\n");
+                            }
+                            if(write(socketJ[partie*2+1],&msg,sizeof(message_t))==-1){
+                                perror("Erreur lors de l'envoi de M_POISS au joueur\n");
+                            }
+                            pthread_mutex_unlock(&sock[partie]);
 						}
 						if (change) {
 							pthread_mutex_unlock(&etang[partie].objet[y][x].mutObj);
@@ -304,18 +368,36 @@ void stopServeur(int sig){
 }
 
 /* faire un stop partie */
+void stopPartie(int partie){
+    void * res;
+    int j;
+    
+    boucle[partie]=0;
+    
+    if(close(socketJ[partie*2]) == -1) {
+        perror("Erreur lors de la fermeture de la socket ");
+        exit(EXIT_FAILURE);
+    }
+    if(close(socketJ[partie*2+1]) == -1) {
+        perror("Erreur lors de la fermeture de la socket ");
+        exit(EXIT_FAILURE);
+    }
+
+    pthread_join(threadTCP[partie],&res);
+    pthread_join(jTCP[partie],&res);
+    /*stop simul pour MAX_PARTIE*/
+}
+
 
 void * joueurTCP(void * args){ /*va communiquer avec un joueur*/
     int* paraThread;
-    int idJ,socket,retour;
+    int idJ,retour;
     message_t msg;
 
     paraThread= (int*)args; /* [0] -> socket du joueur, [1] -> id du joueur */
-    socket=paraThread[0];
     idJ=paraThread[1];
-    printf("créé j%d\n",idJ);
-    printf("socket : %d\n",socket);
-    sleep(1);
+    socketJ[idJ]=paraThread[0];
+    
     /*
     if(write(socket,&msg,sizeof(message_t))==-1){
         perror("Erreur lors de l'envoi de WINGAME au joueur\n");
@@ -323,7 +405,7 @@ void * joueurTCP(void * args){ /*va communiquer avec un joueur*/
     }
     */
     while(1){
-        if((retour=read(socket, &msg, sizeof(message_t))) == -1) {
+        if((retour=read(socketJ[idJ], &msg, sizeof(message_t))) == -1) {
             perror("Erreur lors de la lecture de la taille du message ");
             exit(EXIT_FAILURE);
         }
@@ -529,6 +611,7 @@ int main (int argc, char * argv []){
         pthread_mutex_init(&abouges[i],NULL);
         pthread_mutex_init(&act[i],NULL);
         pthread_mutex_init(&tour[i],NULL);
+        pthread_mutex_init(&sock[i],NULL);
         /* INIT des COND*/
         pthread_cond_init(&aff[i],NULL);
         pthread_cond_init(&bouge[i],NULL);

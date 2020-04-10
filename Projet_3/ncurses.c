@@ -37,11 +37,13 @@ void ncurses_couleurs() {
   start_color();
 
   /* Definition de la palette */
-  init_pair(1, COLOR_BLACK, COLOR_WHITE); /* pour les box et les pneus */
+  init_pair(0, COLOR_WHITE, COLOR_BLACK); /* pour les pneus */
+  init_pair(1, COLOR_BLACK, COLOR_WHITE); /* pour les box */
   init_pair(2, COLOR_WHITE, COLOR_BLUE); /* pour l'etang */
   init_pair(3, COLOR_BLACK, COLOR_YELLOW); /* pour les poissons */
   init_pair(4, COLOR_BLACK, COLOR_GREEN); /* pour les requins */
 	init_pair(5, COLOR_WHITE, COLOR_MAGENTA); /* pour les lignes */
+  init_pair(6, COLOR_BLACK, COLOR_RED); /* pour les dynamites */
 
 }
 

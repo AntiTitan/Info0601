@@ -12,7 +12,11 @@
 #include "struct_message.h"
 #include "fonctions_sys.h"
 
+
+
 int actJoueur,boucle=1,etatPartie=0,nbpoiss,max_poiss,*abouge;
+int sockfdTCP,sockfdUDP;
+ligne_t ligne;
 grille_t etang;
 joueur_t joueur;
 poisson_t * poiss;
@@ -20,6 +24,7 @@ poisson_t * poiss;
 pthread_t affiche;
 pthread_t gerant;
 
+pthread_mutex_t sock =PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mess =PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t abouges =PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t act =PTHREAD_MUTEX_INITIALIZER;
@@ -28,30 +33,21 @@ pthread_mutex_t tour =PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t poissons =PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutJ =PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutpoiss =PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutLigne =PTHREAD_MUTEX_INITIALIZER;
 
 pthread_cond_t aff = PTHREAD_COND_INITIALIZER;
-pthread_cond_t bouge = PTHREAD_COND_INITIALIZER;
-pthread_cond_t peche = PTHREAD_COND_INITIALIZER;
 
-WINDOW *fen_sim,*fen_msg;
-WINDOW *fen_box_sim,*fen_box_msg;
+WINDOW *fen_sim,*fen_msg,*fen_obj;
+WINDOW *fen_box_sim,*fen_box_msg,*fen_box_obj;
 
 
 void* GestionAction(void* arg) {
-
+    message_t msg;
     while(1) {
         pthread_mutex_lock(&act);
         /* variable bloquée */
 
-        if (actJoueur == BOUGE) {
-            pthread_cond_broadcast(&bouge);
-        }
-
         if (actJoueur == AFFICHE) {
-            pthread_cond_broadcast(&aff);
-        }
-
-        if (actJoueur == PECHE) {
             pthread_cond_broadcast(&aff);
         }
 
@@ -63,6 +59,15 @@ void* GestionAction(void* arg) {
             /*arrêt clic et envoi message */
             pthread_mutex_lock(&etat);
             etatPartie=WIN_GAME;
+
+            msg.typeMessage=WIN_GAME;
+            pthread_mutex_lock(&sock);
+            if(write(sockfdTCP, &msg , sizeof(message_t)) == -1) {
+                perror("Erreur lors de l'envoi du message ");
+                exit(EXIT_FAILURE);
+            }
+            pthread_mutex_unlock(&sock);
+
             pthread_mutex_unlock(&etat);
         }
         pthread_mutex_unlock(&mutJ);
@@ -70,6 +75,7 @@ void* GestionAction(void* arg) {
         pthread_mutex_lock(&etat);
         if(etatPartie == ENDGAME){
             /* déclanchement fin du jeu*/
+            simulation_stopper();
         }
         pthread_mutex_unlock(&etat);
         sleep(1);
@@ -78,13 +84,109 @@ void* GestionAction(void* arg) {
     return NULL;
 }
 
+void* ClicAction(void* arg){
+    int ch,item_actif = VIDE;
+    message_t msg;
+    MEVENT event;
+    ncurses_souris(); 
+	
+	while(boucle){ 
+		/*gère clic pour la ligne ( et des objets )*/
+        pthread_mutex_lock(&act);
+        if(actJoueur==LIBRE){
+            ch = getch();
+            switch(ch) {
+                case KEY_MOUSE :
+                    if (getmouse(&event) == OK) {
+                        /*dans l'écran*/
+                        if (event.y <=etang.hauteur+1 && event.y >= 1 && event.x >= 1 && event.x <= etang.largeur+1) {
+                            /*un objet est-il en cours ? -> on le pose*/
+                            pthread_mutex_lock(&mutLigne);
+                            if(item_actif!=VIDE){ 
+                                /*la case est-elle vide ?*/
+                                pthread_mutex_lock(&etang.objet[event.y][event.x].mutObj);
+                                if(etang.objet[event.y][event.x].typeObjet==VIDE){
+                                    /*envoi au serveur */
+                                    msg.typeMessage=PIEGE;
+                                    msg.idJoueur=joueur.idJoueur;
+                                    msg.typeObjet=item_actif;
+                                    msg.position[0]=event.y;
+                                    msg.position[1]=event.x;
+                                    pthread_mutex_lock(&sock);
+                                    if(write(sockfdTCP, &msg , sizeof(message_t)) == -1) {
+                                        perror("Erreur lors de l'envoi du message ");
+                                        exit(EXIT_FAILURE);
+                                    }
+                                    pthread_mutex_unlock(&sock);
+                                    item_actif=VIDE;
+                                }
+                                pthread_mutex_unlock(&etang.objet[event.y][event.x].mutObj);
+                                
+                            }
+                            /*la ligne est relevée ? -> on la pose*/
+                            else if(ligne.pos==RELEVE){
+                                ligne.y=event.y;
+                                ligne.x=event.x;
+                                msg.typeMessage=P_LIGNE;
+                                msg.position[0]=event.y;
+                                msg.position[1]=event.x;
+                                /* XXX indiquer id J ?*/
+                                pthread_mutex_lock(&sock);
+                                if(write(sockfdTCP, &msg , sizeof(message_t)) == -1) {
+                                    perror("Erreur lors de l'envoi du message ");
+                                    exit(EXIT_FAILURE);
+                                }
+                                pthread_mutex_unlock(&sock);
+                                /* XXX envoi pos ligne*/
+                            }
+                            /*la ligne est posée ? -> on la relève*/
+                            else if(ligne.pos==POSE){
+                                /* XXX envoi releve*/
+                                msg.typeMessage=R_LIGNE;
+                                /* XXX indiquer id J ?*/
+                                pthread_mutex_lock(&sock);
+                                if(write(sockfdTCP, &msg , sizeof(message_t)) == -1) {
+                                    perror("Erreur lors de l'envoi du message ");
+                                    exit(EXIT_FAILURE);
+                                }
+                                pthread_mutex_unlock(&sock);
+                            }
+                            pthread_mutex_unlock(&mutLigne);
+                        }
+                        /*dans les objets*/
+                        else if (event.y >= HAUTEUR_MSG+3 && event.y <= (2+HAUTEUR_MSG)*2-1 && event.x >=etang.largeur+3 && event.x <=etang.largeur+3+LARGEUR_MSG ) {
+                            if (event.y >= HAUTEUR_MSG+4 && event.y <= HAUTEUR_MSG+10 && event.x >=etang.largeur+4 && event.x <=etang.largeur+17 ){
+                                /*pneu*/
+                                item_actif=PNEU;
+                            }
+                            else if (event.y >= HAUTEUR_MSG+11 && event.y <= HAUTEUR_MSG+17 && event.x >=etang.largeur+4 && event.x <=etang.largeur+17 ){
+                                /*requin*/
+                                item_actif=REQUIN;
+                            }
+                            else if (event.y >= HAUTEUR_MSG+4 && event.y <= HAUTEUR_MSG+10 && event.x >=etang.largeur+19 && event.x <=etang.largeur+32 ){
+                                /*dynamite*/
+                                item_actif=DYNAMITE;
+                            }
+                            else if (event.y >= HAUTEUR_MSG+11 && event.y <= HAUTEUR_MSG+17 && event.x >=etang.largeur+19 && event.x <=etang.largeur+32 ){
+                                /*furtif*/
+                                item_actif=FURTIF_ON;
+                            }
+                        }
+                    }
+                break;
+            }
+        }
+        pthread_mutex_unlock(&act);
+	}
+    return NULL;
+}
+
 void creer_fenetre_box_sim() {
 /*Creation de la fenetre de contour de la fenetre de simulation */
-	
 	fen_box_sim = newwin(etang.hauteur + 2, etang.largeur + 2, 0, 0);
 	box(fen_box_sim, 0, 0);
 	wbkgd(fen_box_sim, COLOR_PAIR(1));
-	mvwprintw(fen_box_sim, 0, 1, "SIMULATION");	
+	mvwprintw(fen_box_sim, 0, 3, "SIMULATION");	
 	wrefresh(fen_box_sim);
 }
 
@@ -99,7 +201,7 @@ void creer_fenetre_sim() {
 
 void creer_fenetre_box_msg() {
 /* Creation de la fenetre de contour de la fenetre de messages */
-	fen_box_msg = newwin(15 + 2, 30 + 2, 0, etang.largeur + 2);
+	fen_box_msg = newwin(HAUTEUR_MSG + 2, LARGEUR_MSG + 2, 0, etang.largeur + 2);
 	box(fen_box_msg, 0, 0);
 	wbkgd(fen_box_msg, COLOR_PAIR(1));
 	mvwprintw(fen_box_msg, 0, (etang.largeur + 2) / 2 - 4, "MESSAGES");
@@ -110,10 +212,49 @@ void creer_fenetre_msg() {
 /* Creation de la fenetre de messages dans la fenetre de contour */
 /* Les messages indicatifs des evenements de la simulation et de l'interface */
 /* utilisateur sont affiches dans cete fenetre */
-	fen_msg = subwin(fen_box_msg, 15,30, 1, etang.largeur + 3);
+	fen_msg = subwin(fen_box_msg, HAUTEUR_MSG,LARGEUR_MSG, 1, etang.largeur + 3);
 	scrollok(fen_msg, TRUE);
 	wbkgd(fen_msg, COLOR_PAIR(5));
     wrefresh(fen_msg);
+}
+
+void creer_fenetre_box_obj() {
+/* Creation de la fenetre de contour de la fenetre de messages */
+	fen_box_obj = newwin(HAUTEUR_MSG + 2, LARGEUR_MSG + 2, HAUTEUR_MSG + 2, etang.largeur + 2);
+	box(fen_box_obj, 0, 0);
+	wbkgd(fen_box_obj, COLOR_PAIR(1));
+	mvwprintw(fen_box_obj, 0, (etang.largeur + 2) / 2 - 4, "OBJETS");
+	wrefresh(fen_box_obj);
+}
+
+void creer_fenetre_obj() {
+    int i;
+/* Creation de la fenetre de messages dans la fenetre de contour */
+/* Les messages indicatifs des evenements de la simulation et de l'interface */
+/* utilisateur sont affiches dans cete fenetre */
+	fen_obj = subwin(fen_box_obj, HAUTEUR_MSG,LARGEUR_MSG, HAUTEUR_MSG + 3, etang.largeur + 3);
+	/*scrollok(fen_obj, TRUE);*/
+	wbkgd(fen_obj, COLOR_PAIR(1));
+    /*definition des zones*/
+    for(i=0;i<6;i++){
+        wattron(fen_obj,COLOR_PAIR(0)); /*zone pneu*/
+        mvwprintw(fen_obj,etang.hauteur+4+i,etang.largeur+4,"             ");
+        wattroff(fen_obj,COLOR_PAIR(0));
+
+        wattron(fen_obj,COLOR_PAIR(4)); /*zone requin*/
+        mvwprintw(fen_obj,etang.hauteur+11+i,etang.largeur+4,"             ");
+        wattroff(fen_obj,COLOR_PAIR(4));
+
+        wattron(fen_obj,COLOR_PAIR(6)); /*zone dynamite*/
+        mvwprintw(fen_obj,etang.hauteur+4+i,etang.largeur+19,"             ");
+        wattroff(fen_obj,COLOR_PAIR(6));
+
+        wattron(fen_obj,COLOR_PAIR(5)); /*zone furtive*/
+        mvwprintw(fen_obj,etang.hauteur+11+i,etang.largeur+19,"             ");
+        wattroff(fen_obj,COLOR_PAIR(5));
+    }
+
+    wrefresh(fen_obj);
 }
 
 void simulation_initialiser() {
@@ -130,23 +271,45 @@ void simulation_initialiser() {
 
 void simulation_stopper() {
 	int i;
-	
-	pthread_cancel(affiche);
+
+    boucle =0;
 	for(i=0;i<etang.hauteur;i++){
 		free(etang.objet[i]);
 	}
 	free(etang.objet);
+
+    free(poiss);
+    free(abouge);
+
 	ncurses_stopper();
+
+    delwin(fen_msg);
+    delwin(fen_sim);
+    delwin(fen_box_msg);
+    delwin(fen_box_sim);
+
 	free(fen_msg);
 	free(fen_sim);
 	free(fen_box_msg);
 	free(fen_box_sim);
+
+    /* Fermeture de la socket TCP */
+    if(close(sockfdTCP) == -1) {
+        perror("Erreur lors de la fermeture de la socket ");
+        exit(EXIT_FAILURE);
+    }
+
+    /* Fermeture de la socket UDP */
+    if(close(sockfdUDP) == -1) {
+        perror("Erreur lors de la fermeture de la socket ");
+        exit(EXIT_FAILURE);
+    }
 }
 
 void * affichage(void * arg){
 	int i,j;
 	while(boucle){
-		/* on fait affichage tour par tour */
+		/* on fait affichage quand tous les poissons ont bougé ou qd un poisson est crée */
 		pthread_mutex_lock(&act);
 
 		while(actJoueur != AFFICHE){
@@ -190,9 +353,9 @@ void * affichage(void * arg){
 					case(PNEU) :
 						/*tester idJoueur du pneu*/
 						if(etang.objet[i][j].idJoueur==joueur.idJoueur){
-							wattron(fen_sim,COLOR_PAIR(1));
+							wattron(fen_sim,COLOR_PAIR(0));
 							mvwprintw(fen_sim, i, j, " "); /* fond noir */
-							wattroff(fen_sim,COLOR_PAIR(1));
+							wattroff(fen_sim,COLOR_PAIR(0));
 						}
 						else{
 							mvwprintw(fen_sim, i, j, " "); /* fond bleu */
@@ -233,8 +396,8 @@ void * affichage(void * arg){
 int main (int argc, char * argv []){
 
 /*déclarations*/
-
-    int sockfdUDP, sockfdTCP,i,j,statut;
+    void * res;
+    int i,j,statut;
     struct sockaddr_in adresseServeurUDP , adresseServeurTCP;
     message_t reqUDP,repUDP;
     message_t reqTCP,repTCP;
@@ -341,6 +504,7 @@ int main (int argc, char * argv []){
     etang.hauteur=repTCP.hauteur;
     etang.objet=malloc(sizeof(objet_t *)*etang.hauteur);
 
+    
     /*création locale de la grille*/
 
     for(i=0;i<etang.hauteur;i++){
@@ -350,6 +514,11 @@ int main (int argc, char * argv []){
             etang.objet[i][j].idLigne1=-1;
         }
     }
+
+    ligne.y=-1;
+    ligne.x=-1;
+    ligne.pos=RELEVE;
+
     /*
     if(read(sockfdTCP, &repTCP, sizeof(message_t)) == -1) {
       perror("Erreur lors de la lecture de la taille du message ");
@@ -386,10 +555,12 @@ int main (int argc, char * argv []){
     /*début de partie -> tant que pas fin du jeu (ou deconnexion -> à gérer)*/
     while(boucle){
         /*attente de messages du serveur -> thread affichage*/
+        pthread_mutex_lock(&sock);
         if(read(sockfdTCP, &repTCP, sizeof(message_t)) == -1) {
             perror("Erreur lors de la lecture de la taille du message ");
             exit(EXIT_FAILURE);
-        }  
+        } 
+        pthread_mutex_unlock(&sock); 
         switch(repTCP.typeMessage){
             /*resultat pêche */
             case (PRISE): 
@@ -410,10 +581,10 @@ int main (int argc, char * argv []){
                         joueur.nbPoints+=1;
                     break;
                     case(PNEU):
-                    /* est bloqué -> envoi msg fin pneu*/
+                    /* est bloqué */
                     break;
                     case(DYNAMITE):
-                    /* est bloqué -> envoi msg fin dyn*/
+                    /* est bloqué */
                     break;
                     case(REQUIN):
                         joueur.nbPoints-=1;
@@ -520,6 +691,26 @@ int main (int argc, char * argv []){
 
             /*fin du jeu */
             case (ENDGAME): 
+                pthread_mutex_lock(&etat);
+                etatPartie = ENDGAME;
+                pthread_mutex_unlock(&etat);
+            break;
+            /*resultat pose de ligne */
+            case (OKO_LIGNE): 
+                pthread_mutex_lock(&mutLigne);
+                if(repTCP.direction==OK){
+                    x=ligne.x;
+                    y=ligne.y;
+                    pthread_mutex_lock(&etang.objet[y][x].mutObj);
+                    etang.objet[y][x].idLigne1=joueur.idJoueur;
+                    pthread_mutex_lock(&etang.objet[y][x].mutObj);
+                    ligne.pos=POSE;
+                }
+                else if(repTCP.direction=KO){
+                    ligne.x=-1;
+                    ligne.y=-1;
+                }
+                pthread_mutex_unlock(&mutLigne);
             break;
             
 
@@ -530,7 +721,8 @@ int main (int argc, char * argv []){
             
         }
     }
-    
+    pthread_join(affichage,&res);
+    pthread_join(gerant,&res);
         /*pose de la ligne -> envoi message au serveur*/
 
             /*remonte la ligne -> debut chrono du tour et envoi message*/
@@ -542,10 +734,6 @@ int main (int argc, char * argv []){
 
     /*message du serveur -> fin de partie*/
 
-    /* Fermeture de la socket */
-    if(close(sockfdUDP) == -1) {
-        perror("Erreur lors de la fermeture de la socket ");
-        exit(EXIT_FAILURE);
-    }
+    
     return (EXIT_SUCCESS);
 }

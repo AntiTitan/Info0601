@@ -29,7 +29,7 @@
 /* pose de ligne CS*/
 #define P_LIGNE      6
 /* autorisation ou non de la pose de ligne */
-#define OK_LIGNE     7
+#define OKO_LIGNE     7
 /* relevé de ligne CS */
 #define R_LIGNE      8
 /* resultat de la pêche SC */
@@ -44,6 +44,8 @@
 #define ENDGAME      13
 /* données du jeu SC */
 #define GAME         14
+/*pose d'un objet par un joueur */
+#define PIEGE        15
 
 #define OK  1
 #define KO  0

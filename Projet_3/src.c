@@ -48,15 +48,7 @@ pthread_mutex_unlock(&abouges);
 
 abouge=malloc((max_poiss+1)*sizeof(int));
 /* dans joueur -> remmetrre ça pour relancer bouger */
- ncurses_souris(); 
-	
-	while((ch = getch()) != KEY_F(2) && boucle){ */
-		/*gère clic pour la ligne*/
-		/* un thread pour affichage poissons 
-		et le prog principal qui gère la ligne
-			-> mutex sur fen_sim ?*/
 
-	}
 
 
 
@@ -71,10 +63,7 @@ int main(int argc, char * argv []){
 		pthread_join(*threads_poissons[i],&res);
 	}
 
-	delwin(fen_box_sim);
-	delwin(fen_sim);
-	delwin(fen_box_msg);
-	delwin(fen_msg);
+	
 	simulation_stopper();
 	ncurses_stopper();
     return EXIT_SUCCESS;

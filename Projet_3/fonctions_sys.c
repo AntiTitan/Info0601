@@ -143,6 +143,9 @@ void swap_poiss(objet_t * obj1, objet_t * obj2, int mode){
     /* echange id poiss*/
     obj2->idPoiss=obj1->idPoiss;
     obj1->idPoiss=-1;
+    /* echange id Joueur -> requin*/
+    obj2->idJoueur=obj1->idJoueur;
+    obj1->idJoueur=-1;
     /* echange thread poiss*/
     if(mode == 1){ /* si on est dans le serveur */
         obj2->threadPoisson=obj1->threadPoisson;

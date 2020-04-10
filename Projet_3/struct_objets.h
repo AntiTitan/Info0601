@@ -28,11 +28,17 @@
 #define PECHE     3
 #define POSE      4
 
-#define HAUT 0
-#define BAS 2
-#define DROITE 1
-#define GAUCHE 3
+#define HAUT      0
+#define BAS       2
+#define DROITE    1
+#define GAUCHE    3
 
+#define RELEVE    0
+#define POSE      1
+#define BLOQUE    2
+
+#define LARGEUR_MSG 30
+#define HAUTEUR_MSG 15
 
 /* structures */
 
@@ -73,7 +79,12 @@ typedef struct c {
 } coord_t;
 
 /* structre de poisson pour le joueur */
-typedef struct c {
+typedef struct l {
+	int x,y,pos;
+} ligne_t;
+
+/* structre de poisson pour le joueur */
+typedef struct p {
 	int x,y,id,type;
 } poisson_t;
 
