@@ -47,15 +47,17 @@ typedef struct obj{
     int typeObjet;
     int idPoiss;
     int typePoisson;
+    int etatPoisson;
     int idJoueur;
     int idLigne1; /* au cas où deux joueurs posent leur ligne au même endroit*/
     /*chez le joueur, sa ligne seulement sera indiquée (en idLigne1)*/
     int idLigne2; /* au cas où deux joueurs posent leur ligne au même endroit*/
+    int gagnantLigne;
+    int posLigne;
     int position [2];
+
     pthread_t threadPoisson; /* à ne pas envoyer */
-    pthread_t threadChrono;  /* à ne pas envoyer */
     pthread_mutex_t mutObj;  /* à ne pas envoyer */
-    pthread_cond_t contObj;  /* à ne pas envoyer */
 } objet_t;
 
     /* grille représentant l'étang */

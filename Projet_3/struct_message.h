@@ -47,8 +47,8 @@
 /*pose d'un objet par un joueur */
 #define PIEGE        15
 
-#define OK  1
-#define KO  0
+#define MORDU  1
+#define LIBRE  0
 
 
 #define MAX_PARTIE 5

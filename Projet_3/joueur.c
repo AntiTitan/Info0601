@@ -85,7 +85,7 @@ void* GestionAction(void* arg) {
 }
 
 void* ClicAction(void* arg){
-    int ch,item_actif = VIDE;
+    int ch,item_actif = VIDE,poseObj;
     message_t msg;
     MEVENT event;
     ncurses_souris(); 
@@ -95,6 +95,7 @@ void* ClicAction(void* arg){
         pthread_mutex_lock(&act);
         if(actJoueur==LIBRE){
             ch = getch();
+            poseObj=0;
             switch(ch) {
                 case KEY_MOUSE :
                     if (getmouse(&event) == OK) {
@@ -105,7 +106,22 @@ void* ClicAction(void* arg){
                             if(item_actif!=VIDE){ 
                                 /*la case est-elle vide ?*/
                                 pthread_mutex_lock(&etang.objet[event.y][event.x].mutObj);
-                                if(etang.objet[event.y][event.x].typeObjet==VIDE){
+                                pthread_mutex_lock(&mutJ);
+                                if(item_actif==PNEU && joueur.poireaus>=150){
+                                    poseObj=1;
+                                }
+                                if(item_actif==DYNAMITE && joueur.poireaus>=200){
+                                    poseObj=1;
+                                }
+                                if(item_actif==REQUIN && joueur.poireaus>=300){
+                                    poseObj=1;
+                                }
+                                if(item_actif==FURTIF_ON && joueur.poireaus>=500){
+                                    poseObj=1;
+                                }
+
+                                pthread_mutex_unlock(&mutJ);
+                                if(etang.objet[event.y][event.x].typeObjet==VIDE && poseObj){
                                     /*envoi au serveur */
                                     msg.typeMessage=PIEGE;
                                     msg.idJoueur=joueur.idJoueur;
@@ -118,6 +134,21 @@ void* ClicAction(void* arg){
                                         exit(EXIT_FAILURE);
                                     }
                                     pthread_mutex_unlock(&sock);
+                                    etang.objet[event.y][event.x].typeObjet=item_actif;
+                                    pthread_mutex_lock(&mutJ);
+                                    if(item_actif==PNEU ){
+                                        joueur.poireaus-=150;
+                                    }
+                                    if(item_actif==DYNAMITE ){
+                                        joueur.poireaus-=200;
+                                    }
+                                    if(item_actif==REQUIN ){
+                                        joueur.poireaus-=300;
+                                    }
+                                    if(item_actif==FURTIF_ON ){
+                                        joueur.poireaus-=500;
+                                    }
+                                    pthread_mutex_unlock(&mutJ);
                                     item_actif=VIDE;
                                 }
                                 pthread_mutex_unlock(&etang.objet[event.y][event.x].mutObj);
@@ -143,6 +174,8 @@ void* ClicAction(void* arg){
                             else if(ligne.pos==POSE){
                                 /* XXX envoi releve*/
                                 msg.typeMessage=R_LIGNE;
+                                msg.position[0]=ligne.y;
+                                msg.position[1]=ligne.x;
                                 /* XXX indiquer id J ?*/
                                 pthread_mutex_lock(&sock);
                                 if(write(sockfdTCP, &msg , sizeof(message_t)) == -1) {
@@ -564,9 +597,10 @@ int main (int argc, char * argv []){
         switch(repTCP.typeMessage){
             /*resultat pêche */
             case (PRISE): 
-                pthread_mutex_lock(&mutJ);
+                
                 switch(repTCP.typeObjet){
                     case(POISSON):
+                        pthread_mutex_lock(&mutJ);
                         switch(repTCP.typePoisson){
                             case(1):
                             joueur.poireaus+=100;
@@ -579,19 +613,22 @@ int main (int argc, char * argv []){
                             break;
                         }
                         joueur.nbPoints+=1;
+                        pthread_mutex_unlock(&mutJ);
                     break;
                     case(PNEU):
-                    /* est bloqué */
+                        sleep(3);
                     break;
                     case(DYNAMITE):
-                    /* est bloqué */
+                        sleep(3);
                     break;
                     case(REQUIN):
+                        pthread_mutex_lock(&mutJ);
                         joueur.nbPoints-=1;
                         joueur.poireaus-=100;
+                        pthread_mutex_unlock(&mutJ);
                     break;
                 }
-                pthread_mutex_unlock(&mutJ);
+                
             break;
 
             /*creation poiss (id,x,y,type) -> changement nbPoiss et ajout dans poiss[] */
@@ -698,18 +735,12 @@ int main (int argc, char * argv []){
             /*resultat pose de ligne */
             case (OKO_LIGNE): 
                 pthread_mutex_lock(&mutLigne);
-                if(repTCP.direction==OK){
-                    x=ligne.x;
-                    y=ligne.y;
-                    pthread_mutex_lock(&etang.objet[y][x].mutObj);
-                    etang.objet[y][x].idLigne1=joueur.idJoueur;
-                    pthread_mutex_lock(&etang.objet[y][x].mutObj);
-                    ligne.pos=POSE;
-                }
-                else if(repTCP.direction=KO){
-                    ligne.x=-1;
-                    ligne.y=-1;
-                }
+                x=ligne.x;
+                y=ligne.y;
+                pthread_mutex_lock(&etang.objet[y][x].mutObj);
+                etang.objet[y][x].idLigne1=joueur.idJoueur;
+                pthread_mutex_lock(&etang.objet[y][x].mutObj);
+                ligne.pos=POSE;
                 pthread_mutex_unlock(&mutLigne);
             break;
             

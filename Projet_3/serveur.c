@@ -19,7 +19,7 @@ pthread_t jTCP[MAX_JOUEURS];
 pthread_t * * threads_poissons [MAX_PARTIE];
 pthread_t gerant[MAX_PARTIE];
 
-pthread_mutex_t poissons [MAX_PARTIE];
+pthread_mutex_t nbPoissons [MAX_PARTIE];
 pthread_mutex_t abouges [MAX_PARTIE];
 pthread_mutex_t act [MAX_PARTIE];
 pthread_mutex_t tour [MAX_PARTIE];
@@ -59,12 +59,10 @@ void creerPoisson(coord_t * coord){
 	int x,y,place=0,id,type,partie;
     message_t msg;
     partie=coord->partie;
-	pthread_mutex_lock(&poissons[partie]);
+	pthread_mutex_lock(&nbPoissons[partie]);
 	id=nbpoiss[partie];
-	
 	nbpoiss[partie]++;
-	pthread_mutex_unlock(&poissons[partie]);
-	
+	pthread_mutex_unlock(&nbPoissons[partie]);
 	/*
 	pthread_mutex_lock(&mess);
 	mvwprintw(fen_msg, 0, 0, "poisson %d\n",id);    fond gris ou violet *
@@ -90,9 +88,11 @@ void creerPoisson(coord_t * coord){
 			else{
 				etang[partie].objet[y][x].typePoisson=POISSON3;
 			}
+            etang[partie].objet[y][x].etatPoisson=LIBRE;
 			place=1;
 		}
 		pthread_mutex_unlock(&etang[partie].objet[y][x].mutObj);
+
         msg.typeMessage=C_POISS;
         msg.idPoisson=id;
         msg.position[0]=y;
@@ -109,11 +109,24 @@ void creerPoisson(coord_t * coord){
 	coord->y=y;
 	coord->x=x;
 }
+void chrono_poisson(int partie,int y,int x,int idPoiss){
+    pthread_mutex_lock(&etang[partie].objet[y][x].mutObj);
+    etang[partie].objet[y][x].etatPoisson=MORDU;
+    pthread_mutex_lock(&etang[partie].objet[y][x].mutObj);
+    sleep(5);
+    pthread_mutex_lock(&etang[partie].objet[y][x].mutObj);
+    if(etang[partie].objet[y][x].typeObjet==POISSON &&etang[partie].objet[y][x].idPoiss==idPoiss){
+        etang[partie].objet[y][x].etatPoisson=LIBRE;
+    }
+    pthread_mutex_lock(&etang[partie].objet[y][x].mutObj);
 
+    return NULL;
+}
 void *routine_poisson(void *arg) {
 	coord_t *coord = (coord_t *) arg;
     message_t msg;
-	int dir, x, y, change,id,unlock=0,partie;
+	int dir, x, y, change,id,unlock=0,partie,ordre,ligne;
+    int tmpx, tmpy,trouve=0;
     /*tableau int enfuite (-> poisson en fuite) et tab int continue (-> poisson attrapé)*/
 	sleep(3);
 	y = coord->y;
@@ -128,12 +141,186 @@ void *routine_poisson(void *arg) {
 		/*tester s'il y a une ligne proche -> comment faire pour la fuite ?*/
 		pthread_mutex_lock(&act[partie]);
 		
+       
 		/*attendre signal deplacement cond*/
 		while(actPoiss != BOUGE){
 			pthread_cond_wait(&bouge[partie],&act[partie]);
 		}
 		pthread_mutex_unlock(&act[partie]); /*Il faut peut etre le mettre a la fin*/
-		
+		trouve=0;
+        tmpx=-1;
+        tmpy=-1;
+        /* vérifie s'il y a une ligne à proximité*/
+        ordre = (rand() % 2);
+        if(ordre==0){
+            /*on regarde la ligne1 en premier*/
+            /* en haut*/
+            if(y>0 && !trouve){
+                pthread_mutex_lock(&etang[partie].objet[y-1][x].mutObj);
+                if(etang[partie].objet[y-1][x].idLigne1!=-1 && !trouve){
+                    etang[partie].objet[y-1][x].gagnantLigne=etang[partie].objet[y-1][x].idLigne1;
+                    etang[partie].objet[y-1][x].posLigne=HAUT;
+                    trouve=1;
+                    tmpx=x;
+                    tmpy=y-1;
+                }
+                if(etang[partie].objet[y-1][x].idLigne2!=-1 && !trouve){
+                    etang[partie].objet[y-1][x].gagnantLigne=etang[partie].objet[y-1][x].idLigne2;
+                    etang[partie].objet[y-1][x].posLigne=HAUT;
+                    trouve=1;
+                    tmpx=x;
+                    tmpy=y-1;
+                }
+                pthread_mutex_unlock(&etang[partie].objet[y][x].mutObj);
+            }
+            /* en bas*/
+            if(y<hauteur && !trouve){
+                pthread_mutex_lock(&etang[partie].objet[y+1][x].mutObj);
+                if(etang[partie].objet[y+1][x].idLigne1!=-1 && !trouve){
+                    etang[partie].objet[y+1][x].gagnantLigne=etang[partie].objet[y+1][x].idLigne1;
+                    etang[partie].objet[y+1][x].posLigne=BAS;
+                    trouve=1;
+                    tmpx=x;
+                    tmpy=y+1;
+                }
+                if(etang[partie].objet[y+1][x].idLigne2!=-1 && !trouve){
+                    etang[partie].objet[y+1][x].gagnantLigne=etang[partie].objet[y+1][x].idLigne2;
+                    etang[partie].objet[y+1][x].posLigne=BAS;
+                    trouve=1;
+                    tmpx=x;
+                    tmpy=y+1;
+                }
+                pthread_mutex_unlock(&etang[partie].objet[y+1][x].mutObj);
+            }
+            /* à droite*/
+            if(x<largeur && !trouve){
+                pthread_mutex_lock(&etang[partie].objet[y][x+1].mutObj);
+                if(etang[partie].objet[y][x+1].idLigne1!=-1 && !trouve){
+                    etang[partie].objet[y][x+1].gagnantLigne=etang[partie].objet[y][x+1].idLigne1;
+                    etang[partie].objet[y][x+1].posLigne=DROITE;
+                    trouve=1;
+                    tmpx=x+1;
+                    tmpy=y;
+                }
+                if(etang[partie].objet[y][x+1].idLigne2!=-1 && !trouve){
+                    etang[partie].objet[y][x+1].gagnantLigne=etang[partie].objet[y][x+1].idLigne2;
+                    etang[partie].objet[y][x+1].posLigne=DROITE;
+                    trouve=1;
+                    tmpx=x+1;
+                    tmpy=y;
+                }
+                pthread_mutex_unlock(&etang[partie].objet[y][x+1].mutObj);
+            }
+            /* à gauche */
+            if(x>0 && !trouve){
+                pthread_mutex_lock(&etang[partie].objet[y][x-1].mutObj);
+                if(etang[partie].objet[y][x-1].idLigne1!=-1 && !trouve){
+                    etang[partie].objet[y][x-1].gagnantLigne=etang[partie].objet[y][x-1].idLigne1;
+                    etang[partie].objet[y][x-1].posLigne=GAUCHE;
+                    trouve=1;
+                    tmpx=x-1;
+                    tmpy=y;
+                }
+                if(etang[partie].objet[y][x-1].idLigne2!=-1 && !trouve){
+                    etang[partie].objet[y][x-1].gagnantLigne=etang[partie].objet[y][x-1].idLigne2;
+                    etang[partie].objet[y][x-1].posLigne=GAUCHE;
+                    trouve=1;
+                    tmpx=x-1;
+                    tmpy=y;
+                }
+                pthread_mutex_unlock(&etang[partie].objet[y][x-1].mutObj);
+            }
+            
+        }
+        else{
+            /*on regarde la ligne2 en premier*/
+            /* en haut*/
+            if(y>0 && !trouve){
+                pthread_mutex_lock(&etang[partie].objet[y-1][x].mutObj);
+                if(etang[partie].objet[y-1][x].idLigne2!=-1 && !trouve){
+                    etang[partie].objet[y-1][x].gagnantLigne=etang[partie].objet[y-1][x].idLigne2;
+                    etang[partie].objet[y-1][x].posLigne=HAUT;
+                    trouve=1;
+                    tmpx=x;
+                    tmpy=y-1;
+                }
+                if(etang[partie].objet[y-1][x].idLigne1!=-1 && !trouve){
+                    etang[partie].objet[y-1][x].gagnantLigne=etang[partie].objet[y-1][x].idLigne1;
+                    etang[partie].objet[y-1][x].posLigne=HAUT;
+                    trouve=1;
+                    tmpx=x;
+                    tmpy=y-1;
+                }
+                pthread_mutex_unlock(&etang[partie].objet[y][x].mutObj);
+            }
+            /* en bas*/
+            if(y<hauteur && !trouve){
+                pthread_mutex_lock(&etang[partie].objet[y+1][x].mutObj);
+                if(etang[partie].objet[y+1][x].idLigne2!=-1 && !trouve){
+                    etang[partie].objet[y+1][x].gagnantLigne=etang[partie].objet[y+1][x].idLigne2;
+                    etang[partie].objet[y+1][x].posLigne=BAS;
+                    trouve=1;
+                    tmpx=x;
+                    tmpy=y+1;
+                }
+                if(etang[partie].objet[y+1][x].idLigne1!=-1 && !trouve){
+                    etang[partie].objet[y+1][x].gagnantLigne=etang[partie].objet[y+1][x].idLigne1;
+                    etang[partie].objet[y+1][x].posLigne=BAS;
+                    trouve=1;
+                    tmpx=x;
+                    tmpy=y+1;
+                }
+                pthread_mutex_unlock(&etang[partie].objet[y+1][x].mutObj);
+            }
+            /* à droite*/
+            if(x<largeur && !trouve){
+                pthread_mutex_lock(&etang[partie].objet[y][x+1].mutObj);
+                
+                if(etang[partie].objet[y][x+1].idLigne2!=-1 && !trouve){
+                    etang[partie].objet[y][x+1].gagnantLigne=etang[partie].objet[y][x+1].idLigne2;
+                    etang[partie].objet[y][x+1].posLigne=DROITE;
+                    trouve=1;
+                    tmpx=x+1;
+                    tmpy=y;
+                }
+                if(etang[partie].objet[y][x+1].idLigne1!=-1 && !trouve){
+                    etang[partie].objet[y][x+1].gagnantLigne=etang[partie].objet[y][x+1].idLigne1;
+                    etang[partie].objet[y][x+1].posLigne=DROITE;
+                    trouve=1;
+                    tmpx=x+1;
+                    tmpy=y;
+                }
+                pthread_mutex_unlock(&etang[partie].objet[y][x+1].mutObj);
+            }
+            /* à gauche */
+            if(x>0 && !trouve){
+                pthread_mutex_lock(&etang[partie].objet[y][x-1].mutObj);
+                
+                if(etang[partie].objet[y][x-1].idLigne2!=-1 && !trouve){
+                    etang[partie].objet[y][x-1].gagnantLigne=etang[partie].objet[y][x-1].idLigne2;
+                    etang[partie].objet[y][x-1].posLigne=GAUCHE;
+                    trouve=1;
+                    tmpx=x-1;
+                    tmpy=y;
+                }
+                if(etang[partie].objet[y][x-1].idLigne1!=-1 && !trouve){
+                    etang[partie].objet[y][x-1].gagnantLigne=etang[partie].objet[y][x-1].idLigne1;
+                    etang[partie].objet[y][x-1].posLigne=GAUCHE;
+                    trouve=1;
+                    tmpx=x-1;
+                    tmpy=y;
+                }
+                pthread_mutex_unlock(&etang[partie].objet[y][x-1].mutObj);
+            }
+        }
+        if(trouve==1){
+            pthread_mutex_lock(&abouges[partie]);
+            abouge[id]=1;
+            pthread_mutex_unlock(&abouges[partie]);
+            chrono_poisson(partie,tmpy,tmpx,id);
+        }
+        
+
 		pthread_mutex_lock(&abouges[partie]);
 		unlock=0;
 		if(abouge[id]==0){
@@ -282,14 +469,14 @@ void *routine_poisson(void *arg) {
 			pthread_mutex_lock(&abouges[partie]);
 			abouge[partie][max_poiss]++;
 			abouge[partie][id]=1;
-			pthread_mutex_lock(&poissons[partie]);
+			pthread_mutex_lock(&nbPoissons[partie]);
 			if(abouge[max_poiss]==nbpoiss){ /* c'est le dernier poisson qui bouge qui lance l'affichage */
 				pthread_mutex_lock(&act[partie]);
 				actPoiss[partie]=AFFICHE;
 				pthread_mutex_unlock(&act[partie]);
 			}
 
-			pthread_mutex_unlock(&poissons[partie]);
+			pthread_mutex_unlock(&nbPoissons[partie]);
 			pthread_mutex_unlock(&abouges[partie]);
 		}
 		if(unlock==0){
@@ -309,6 +496,7 @@ void simulation_initialiser(int partie) {
 	for (i = 0; i < max_poiss; i++){		/* Au depart il n'y a aucun poisson dans la simulation */
         threads_poissons[partie][i] = malloc(sizeof(pthread_t));
 	}
+
     etang[partie].objet=malloc(hauteur*sizeof(objet_t *));
     for(j=0;j<hauteur;j++){
         etang[partie].objet[j]=malloc(largeur*sizeof(objet_t));
@@ -328,12 +516,12 @@ void simulation_initialiser(int partie) {
 void simulation_stopper(int partie) {
 	int i;
 	
-	pthread_mutex_lock(&poissons[partie]);
+	pthread_mutex_lock(&nbPoissons[partie]);
 	for(i=0;i<nbpoiss[partie];i++){
 		pthread_cancel(*threads_poissons[partie][i]);
 		free(threads_poissons[partie][i]);
 	}
-	pthread_mutex_unlock(&poissons[partie]);
+	pthread_mutex_unlock(&nbPoissons[partie]);
 	/* pthread_cancel(gerant[partie]); */
 	free(threads_poissons[partie]);
 	free(abouge[partie]);
@@ -359,6 +547,7 @@ void stopServeur(int sig){
         }
         for(j=0;j<MAX_PARTIE;j++){
             pthread_join(threadTCP[j],&res);
+            stopPartie(j);
         }
         for(j=0;j<MAX_JOUEURS;j++){
             pthread_join(jTCP[j],&res);
@@ -391,12 +580,14 @@ void stopPartie(int partie){
 
 void * joueurTCP(void * args){ /*va communiquer avec un joueur*/
     int* paraThread;
-    int idJ,retour;
+    int idJ,retour,partie,x,y;
+    int tmpx,tmpy;
     message_t msg;
 
     paraThread= (int*)args; /* [0] -> socket du joueur, [1] -> id du joueur */
     idJ=paraThread[1];
     socketJ[idJ]=paraThread[0];
+    partie=paraThread[2];
     
     /*
     if(write(socket,&msg,sizeof(message_t))==-1){
@@ -405,27 +596,140 @@ void * joueurTCP(void * args){ /*va communiquer avec un joueur*/
     }
     */
     while(1){
+        tmpx=-1;
+        tmpy=-1;
         if((retour=read(socketJ[idJ], &msg, sizeof(message_t))) == -1) {
             perror("Erreur lors de la lecture de la taille du message ");
             exit(EXIT_FAILURE);
         }
         switch(msg.typeMessage){
-            /* pose de ligne */
-            case (P_LIGNE): printf("p ligne\n");
-            break;
-            /* remontée de ligne */
-            case (R_LIGNE):printf("r ligne\n");
-            break;
-            /* mode furtif activé */
-            case (FURTIF_ON): printf("furtif on\n");
-            break;
-            /* mode furtif arrêté*/
-            case (FURTIF_OFF): printf("Furtil off\n");
-            break;
-            /* le joueur a gagné */
-            case (WIN_GAME): printf("WIN_GAME\n");
+            
+            case (P_LIGNE):
+                x=msg.position[1];
+                y=msg.position[0];
+                if(x!=-1 && y!=-1){
+                    pthread_mutex_lock(&etang[partie].objet[y][x].mutObj);
+                    if(idJ==0){
+                        etang[partie].objet[y][x].idLigne1=idJ;
+                    }
+                    else{
+                        etang[partie].objet[y][x].idLigne2=idJ;
+                    }
+                    pthread_mutex_unlock(&etang[partie].objet[y][x].mutObj);
+                    msg.typeMessage=OKO_LIGNE;
+                    pthread_mutex_lock(&sock[partie]);
+                    if(write(socketJ[idJ],&msg,sizeof(message_t))==-1){
+                        perror("Erreur lors envoi ok ligne");
+                    }
+                    pthread_mutex_unlock(&sock[partie]);
+                }
             break;
 
+            case (R_LIGNE):
+                x=msg.position[1];
+                y=msg.position[0];
+                if(x!=-1 && y!=-1){
+                    pthread_mutex_lock(&etang[partie].objet[y][x].mutObj);
+                    if(etang[partie].objet[y][x].gagnantLigne==idJ){
+                        
+                        if(etang[partie].objet[y][x].posLigne==HAUT){
+                            tmpy=y+1;
+                            tmpx=x;
+                        }
+                        if(etang[partie].objet[y][x].posLigne==BAS){
+                            tmpy=y-1;
+                            tmpx=x;
+                        }
+                        if(etang[partie].objet[y][x].posLigne==DROITE){
+                            tmpy=y;
+                            tmpx=x-1;
+                        }
+                        if(etang[partie].objet[y][x].posLigne==GAUCHE){
+                            tmpy=y;
+                            tmpx=x+1;
+                        }
+                        
+                        if(etang[partie].objet[tmpy][tmpx].etatPoisson==MORDU){
+                            /* poisson attrapé à temps !! 
+                            -> on tue le poisson,on cancel le thread poiss*/
+                            pthread_mutex_lock(&etang[partie].objet[tmpy][tmpx].mutObj);
+                            pthread_mutex_lock(&nbPoissons[partie]);
+                            nbpoiss[partie]--;
+                            pthread_mutex_lock(&nbPoissons[partie]);
+                            msg.typeMessage=PRISE;
+                            msg.typeObjet=etang[partie].objet[tmpy][tmpx].typeObjet;
+                            if(etang[partie].objet[tmpy][tmpx].typeObjet==POISSON){
+                                msg.typePoisson=etang[partie].objet[tmpy][tmpx].typePoisson;  
+                            }
+                            pthread_mutex_lock(&sock[partie]);
+                            if(write(socketJ[idJ],&msg,sizeof(message_t))==-1){
+                                perror("Erreur lors envoi ok ligne");
+                            }
+                            pthread_mutex_unlock(&sock[partie]);
+                            pthread_mutex_unlock(&etang[partie].objet[tmpy][tmpx].mutObj);
+                        }
+                        else{
+                            msg.typeMessage=PRISE;
+                            msg.typeObjet=VIDE;
+                            pthread_mutex_lock(&sock[partie]);
+                            if(write(socketJ[idJ],&msg,sizeof(message_t))==-1){
+                                perror("Erreur lors envoi ok ligne");
+                            }
+                            pthread_mutex_unlock(&sock[partie]);
+                        }
+                        etang[partie].objet[y][x].gagnantLigne=-1;
+                    }
+                    else if(etang[partie].objet[y][x].typeObjet==PNEU){
+                        
+                        msg.typeMessage=PRISE;
+                        msg.typeObjet=PNEU;
+                        pthread_mutex_lock(&sock[partie]);
+                        if(write(socketJ[idJ],&msg,sizeof(message_t))==-1){
+                            perror("Erreur lors envoi ok ligne");
+                        }
+                        pthread_mutex_unlock(&sock[partie]);
+                        etang[partie].objet[y][x]=VIDE;
+                    }
+                    pthread_mutex_unlock(&etang[partie].objet[y][x].mutObj);
+                }
+            break;
+
+            
+
+            /* le joueur a gagné */
+            case (WIN_GAME): /*envoi aux deux joueurs ENDGAME
+                arret jTCP des deux joueurs et du threadTCP de la partie */
+                msg.typeMessage=ENDGAME;
+                pthread_mutex_lock(&sock[partie]);
+                if(write(socketJ[idJ],&msg,sizeof(message_t))==-1){
+                    perror("Erreur lors envoi ok ligne");
+                }
+                if(idJ==0){
+                    if(write(socketJ[idJ+1],&msg,sizeof(message_t))==-1){
+                        perror("Erreur lors envoi ok ligne");
+                    }
+                }
+                else{
+                    if(write(socketJ[idJ-1],&msg,sizeof(message_t))==-1){
+                        perror("Erreur lors envoi ok ligne");
+                    } 
+                }
+                pthread_mutex_unlock(&sock[partie]);
+            
+            break;
+            case (PIEGE):
+                switch(msg.typeObjet){
+                    /* mode furtif activé */
+                    case (FURTIF_ON): 
+                        sleep(1); /* XXX on verra */
+                    break;
+
+                    /* mode furtif arrêté*/
+                    case (FURTIF_OFF):
+                        sleep(1); /* XXX on verra */
+                    break;
+                }
+            break;
         }
     
     }
@@ -441,7 +745,7 @@ void* pthreadTCP(void* args) {
     int j,i,idPartie;
     int sockClient [2]={0,0};
     message_t msg;
-    int paraA [2], paraB [2];
+    int paraA [3], paraB [3];
     paraThread= (int*)args; /* [0] -> adresse TCP, [1] -> id de la partie */
     idPartie = paraThread[1];
     /* Création de la socket TCP */
@@ -514,6 +818,7 @@ void* pthreadTCP(void* args) {
 
     paraA[0]=sockClient[0];
     paraA[1]=0;
+    paraA[2]=idPartie;
     printf("creation thread %d\n", idPartie*2+0);
     statut= pthread_create(&jTCP[idPartie*2], NULL, joueurTCP,paraA);
     if(statut!=0){
@@ -521,12 +826,13 @@ void* pthreadTCP(void* args) {
     }
     paraB[0]=sockClient[1];
     paraB[1]=1;
+    paraA[2]=idPartie;
     printf("creation thread %d\n", idPartie*2+1);
     statut= pthread_create(&jTCP[idPartie*2+1], NULL, joueurTCP,paraB);
     if(statut!=0){
         printf("Pb création thread\n");
     }
-    /* création de 20% de poissons MAX pour débuter */
+    /* création de 20% de  MAX pour débuter */
     
     for(i=0;i<max_poiss/5;i++){
 		coord=(coord_t*)malloc(sizeof(coord_t)); 
@@ -607,13 +913,12 @@ int main (int argc, char * argv []){
     
     for(i=0;i<MAX_PARTIE;i++){
         /* INIT des MUTEX*/
-        pthread_mutex_init(&poissons[i],NULL);
+        pthread_mutex_init(&nbPoissons[i],NULL);
         pthread_mutex_init(&abouges[i],NULL);
         pthread_mutex_init(&act[i],NULL);
         pthread_mutex_init(&tour[i],NULL);
         pthread_mutex_init(&sock[i],NULL);
         /* INIT des COND*/
-        pthread_cond_init(&aff[i],NULL);
         pthread_cond_init(&bouge[i],NULL);
         pthread_cond_init(&pose[i],NULL);
         pthread_cond_init(&peche[i],NULL);
@@ -720,13 +1025,11 @@ int main (int argc, char * argv []){
                     if(sendto(sockfdUDP, &repUDP, sizeof(message_t), 0, (struct sockaddr*)&adresseClientUDP[j1].adr, sizeof(adresseClientUDP[j1].adr)) == -1) {
                         perror("Erreur lors de l'envoi du message j1");
                         exit(EXIT_FAILURE);
-                    }
-                    printf("Serveur : message envoyé à j1.\n"); 
+                    } 
                     if(sendto(sockfdUDP, &repUDP, sizeof(message_t), 0, (struct sockaddr*)&adresseClientUDP[j2].adr, sizeof(adresseClientUDP[j2].adr)) == -1) {
                         perror("Erreur lors de l'envoi du message j2");
                         exit(EXIT_FAILURE);
-                    }
-                    printf("Serveur : message envoyé à j2.\n"); 
+                    } 
 
                     /*On supprime les deux adresses j1 et j2*/
                     adresseClientUDP[j1].vide=0;
@@ -740,6 +1043,7 @@ int main (int argc, char * argv []){
                     statut= pthread_create(&threadTCP[nombreJoueurs/2-1], NULL, pthreadTCP,(void *)&paraThread);
                     if(statut!=0){
                         printf("Pb création thread\n");
+                        exit(EXIT_FAILURE);
                     }
                     if(pair){
                         numPort ++;
