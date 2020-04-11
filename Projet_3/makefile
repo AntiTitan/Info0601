@@ -2,7 +2,7 @@
 # CONFIGURATION GENERALE
 #
 
-EXEC = serveur joueur poiss
+EXEC = serveur joueur
 OBJETS = fonctions_sys.o ncurses.o
 NOM_PROJET = projet3
 

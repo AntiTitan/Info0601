@@ -236,6 +236,5 @@ void creer_fenetre_obj(WINDOW * fen_obj, WINDOW *fen_box_obj,int hauteur, int la
         mvwprintw(fen_obj,hauteur+11+i,largeur+19,"             ");
         wattroff(fen_obj,COLOR_PAIR(5));
     }
-
     wrefresh(fen_obj);
 }

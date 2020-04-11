@@ -13,6 +13,7 @@ int largeur, hauteur;
 int max_poiss,nbpoiss[MAX_PARTIE],actPoiss[MAX_PARTIE];
 int * abouge [MAX_PARTIE];
 int socketJ [MAX_JOUEURS];
+int sockParties [MAX_PARTIE][2];
 grille_t etang [MAX_PARTIE];
 
 pthread_t threadTCP[MAX_PARTIE];
@@ -25,11 +26,15 @@ pthread_mutex_t abouges [MAX_PARTIE];
 pthread_mutex_t act [MAX_PARTIE];
 pthread_mutex_t tour [MAX_PARTIE];
 pthread_mutex_t sock[MAX_PARTIE];
+pthread_mutex_t terminal=PTHREAD_MUTEX_INITIALIZER;
 
 pthread_cond_t bouge [MAX_PARTIE];
 
 void* GestionAction(void* arg) {
     int * partie = (int*)arg;
+    pthread_mutex_lock(&terminal);
+    printf("gerant %d démarre\n",*partie);
+    pthread_mutex_unlock(&terminal);
     while(boucle[*partie]) {
         pthread_mutex_lock(&act[*partie]);
         /* variable bloquée */
@@ -80,6 +85,11 @@ void creerRequin(int y,int x,int partie,int id){
     if(write(socketJ[partie*2],&msg,sizeof(message_t))==-1){
         perror("Erreur lors de l'envoi de M_POISS au joueur\n");
     }
+    msg.typeMessage=C_POISS;
+    msg.idPoisson=id;
+    msg.typePoisson=etang[partie].objet[y][x].typePoisson;
+    msg.position[0]=y;
+    msg.position[1]=x;
     if(write(socketJ[partie*2+1],&msg,sizeof(message_t))==-1){
         perror("Erreur lors de l'envoi de M_POISS au joueur\n");
     }
@@ -88,13 +98,15 @@ void creerRequin(int y,int x,int partie,int id){
 
 void creerPoisson(coord_t * coord){
 	int x,y,place=0,id,type,partie;
+    int j0,j1;
     message_t msg;
     partie=coord->partie;
 	pthread_mutex_lock(&nbPoissons[partie]);
 	id=nbpoiss[partie];
 	nbpoiss[partie]++;
 	pthread_mutex_unlock(&nbPoissons[partie]);
-	
+	j0=sockParties[partie][0];
+    j1=sockParties[partie][1];
 	srand(time(NULL));
     
 	while(!place){
@@ -122,15 +134,20 @@ void creerPoisson(coord_t * coord){
     
         msg.typeMessage=C_POISS;
         msg.typePoisson=etang[partie].objet[y][x].typePoisson;
-        pthread_mutex_unlock(&etang[partie].objet[y][x].mutObj);
         msg.idPoisson=id;
         msg.position[0]=y;
         msg.position[1]=x;
         pthread_mutex_lock(&sock[partie]);
-        if(write(socketJ[partie*2],&msg,sizeof(message_t))==-1){
+        if(write(socketJ[j0],&msg,sizeof(message_t))==-1){
             perror("Erreur lors de l'envoi de M_POISS au joueur\n");
         }
-        if(write(socketJ[partie*2+1],&msg,sizeof(message_t))==-1){
+        msg.typeMessage=C_POISS;
+        msg.typePoisson=etang[partie].objet[y][x].typePoisson;
+        pthread_mutex_unlock(&etang[partie].objet[y][x].mutObj);
+        msg.idPoisson=id;
+        msg.position[0]=y;
+        msg.position[1]=x;
+        if(write(socketJ[j1],&msg,sizeof(message_t))==-1){
             perror("Erreur lors de l'envoi de M_POISS au joueur\n");
         }
         pthread_mutex_unlock(&sock[partie]);
@@ -154,16 +171,23 @@ void chrono_poisson(int partie,int y,int x,int idPoiss){
 void *routine_poisson(void *arg) {
 	coord_t *coord = (coord_t *) arg;
     message_t msg;
-	int dir, x, y, change,id,unlock=0,partie,ordre;
+	int dir, x, y, change,id,unlock=0,partie,ordre,statut;
+    int j0,j1;
     int tmpx, tmpy,trouve=0;
     /*tableau int enfuite (-> poisson en fuite) et tab int continue (-> poisson attrapé)*/
 	sleep(3);
 	y = coord->y;
 	x = coord->x;
     partie= coord->partie;
+    j0=sockParties[partie][0];
+    j1=sockParties[partie][1];
 	pthread_mutex_lock(&etang[partie].objet[y][x].mutObj);
     id=etang[partie].objet[y][x].idPoiss;
-    printf("poiss %d\n",id);
+
+    pthread_mutex_lock(&terminal);
+    printf("poiss %d, y %d, x %d\n",id,y,x);
+    pthread_mutex_unlock(&terminal);
+
 	pthread_mutex_unlock(&etang[partie].objet[y][x].mutObj);
 	srand(time(NULL));
 	while (boucle[partie]) { /*s'arrete quand il est tué ou on met une variable -> comment la modifier */
@@ -173,15 +197,19 @@ void *routine_poisson(void *arg) {
 		while(actPoiss[partie] != BOUGE){
 			pthread_cond_wait(&bouge[partie],&act[partie]);
 		}
-		pthread_mutex_unlock(&act[partie]); /*Il faut peut etre le mettre a la fin*/
+		pthread_mutex_unlock(&act[partie]); 
+
 		trouve=0;
         unlock=0;
         tmpx=-1;
         tmpy=-1;
+
         pthread_mutex_lock(&abouges[partie]);
         if(abouge[partie][id]==0){
             pthread_mutex_unlock(&abouges[partie]);
+            pthread_mutex_lock(&terminal);
             printf("ici ->regarde %d\n",id);
+            pthread_mutex_unlock(&terminal);
             unlock=1;
             /* vérifie s'il y a une ligne à proximité*/
             ordre = (rand() % 2);
@@ -204,7 +232,7 @@ void *routine_poisson(void *arg) {
                         tmpx=x;
                         tmpy=y-1;
                     }
-                    pthread_mutex_unlock(&etang[partie].objet[y][x].mutObj);
+                    pthread_mutex_unlock(&etang[partie].objet[y-1][x].mutObj);
                 }
                 /* en bas*/
                 if(y<hauteur && !trouve){
@@ -263,11 +291,11 @@ void *routine_poisson(void *arg) {
                     }
                     pthread_mutex_unlock(&etang[partie].objet[y][x-1].mutObj);
                 }
-                
             }
+            /*
             else{
-                /*on regarde la ligne2 en premier*/
-                /* en haut*/
+                on regarde la ligne2 en premier
+                 en haut
                 if(y>0 && !trouve){
                     pthread_mutex_lock(&etang[partie].objet[y-1][x].mutObj);
                     if(etang[partie].objet[y-1][x].idLigne2!=-1 && !trouve){
@@ -284,9 +312,9 @@ void *routine_poisson(void *arg) {
                         tmpx=x;
                         tmpy=y-1;
                     }
-                    pthread_mutex_unlock(&etang[partie].objet[y][x].mutObj);
+                    pthread_mutex_unlock(&etang[partie].objet[y-1][x].mutObj);
                 }
-                /* en bas*/
+                 en bas
                 if(y<hauteur && !trouve){
                     pthread_mutex_lock(&etang[partie].objet[y+1][x].mutObj);
                     if(etang[partie].objet[y+1][x].idLigne2!=-1 && !trouve){
@@ -305,7 +333,7 @@ void *routine_poisson(void *arg) {
                     }
                     pthread_mutex_unlock(&etang[partie].objet[y+1][x].mutObj);
                 }
-                /* à droite*/
+                 à droite
                 if(x<largeur && !trouve){
                     pthread_mutex_lock(&etang[partie].objet[y][x+1].mutObj);
                     
@@ -325,7 +353,7 @@ void *routine_poisson(void *arg) {
                     }
                     pthread_mutex_unlock(&etang[partie].objet[y][x+1].mutObj);
                 }
-                /* à gauche */
+                 à gauche 
                 if(x>0 && !trouve){
                     pthread_mutex_lock(&etang[partie].objet[y][x-1].mutObj);
                     
@@ -345,22 +373,32 @@ void *routine_poisson(void *arg) {
                     }
                     pthread_mutex_unlock(&etang[partie].objet[y][x-1].mutObj);
                 }
-            }
+            }*/
             if(trouve==1){
+                pthread_mutex_lock(&terminal);
+                printf("ligne trouvée par %d\n",id);
+                pthread_mutex_unlock(&terminal);
                 pthread_mutex_lock(&abouges[partie]);
                 abouge[partie][id]=1;
                 pthread_mutex_unlock(&abouges[partie]);
                 chrono_poisson(partie,tmpy,tmpx,id);
             }
         }
-
         if(unlock==0){
-            pthread_mutex_lock(&abouges[partie]);
+            pthread_mutex_unlock(&abouges[partie]);
         }
+        /*
+        pthread_mutex_lock(&terminal);
+        printf("f regarde %d\n",id);
+        pthread_mutex_unlock(&terminal);
+        */
 
 		unlock=0;
+        pthread_mutex_lock(&abouges[partie]);
 		if(abouge[partie][id]==0){
+            pthread_mutex_lock(&terminal);
             printf("ici ->bouge %d\n",id);
+            pthread_mutex_unlock(&terminal);
 			pthread_mutex_unlock(&abouges[partie]);
 			unlock=1;
 			/*sinon se déplacer*/
@@ -382,14 +420,41 @@ void *routine_poisson(void *arg) {
                             msg.typeMessage=M_POISS;
                             msg.idPoisson=id;
                             msg.direction=HAUT;
+                            pthread_mutex_lock(&terminal);
+                            printf("p %id haut\n",id);
+                            pthread_mutex_unlock(&terminal);
+
                             pthread_mutex_lock(&sock[partie]);
-                            if(write(socketJ[partie*2],&msg,sizeof(message_t))==-1){
+                            if((statut=write(socketJ[j0],&msg,sizeof(message_t)))==-1){
                                 perror("Erreur lors de l'envoi de M_POISS au joueur\n");
+                                exit(EXIT_FAILURE);
                             }
-                            if(write(socketJ[partie*2+1],&msg,sizeof(message_t))==-1){
+                            if(statut==0){
+                                pthread_mutex_lock(&terminal);
+                                printf("rien envoi XX :%id\n",id);
+                                pthread_mutex_unlock(&terminal);
+                            }
+                            pthread_mutex_lock(&terminal);
+                            printf("envoi XX :%id\n",id);
+                            pthread_mutex_unlock(&terminal);
+                            msg.typeMessage=M_POISS;
+                            msg.idPoisson=id;
+                            msg.direction=HAUT;
+                            if((statut=write(socketJ[j1],&msg,sizeof(message_t)))==-1){
                                 perror("Erreur lors de l'envoi de M_POISS au joueur\n");
+                                exit(EXIT_FAILURE);
+                            }
+                            if(statut==0){
+                                pthread_mutex_lock(&terminal);
+                                printf("rien envoi XX :%id\n",id);
+                                pthread_mutex_unlock(&terminal);
                             }
                             pthread_mutex_unlock(&sock[partie]);
+
+                            pthread_mutex_lock(&terminal);
+                            printf("envoi %id\n",id);
+                            pthread_mutex_unlock(&terminal);
+                            
 						}
 						if (change) {
 							pthread_mutex_unlock(&etang[partie].objet[y][x].mutObj);
@@ -399,9 +464,9 @@ void *routine_poisson(void *arg) {
 							pthread_mutex_unlock(&etang[partie].objet[y-1][x].mutObj);
 							pthread_mutex_unlock(&etang[partie].objet[y][x].mutObj);
 						}
-						break;
+						
 					}
-					
+					break;
 				case DROITE:
 					if(x<largeur-1){
 						pthread_mutex_lock(&etang[partie].objet[y][x+1].mutObj);
@@ -416,14 +481,41 @@ void *routine_poisson(void *arg) {
                             msg.typeMessage=M_POISS;
                             msg.idPoisson=id;
                             msg.direction=DROITE;
+                            pthread_mutex_lock(&terminal);
+                            printf("p %id droite\n",id);
+                            pthread_mutex_unlock(&terminal);
+
                             pthread_mutex_lock(&sock[partie]);
-                            if(write(socketJ[partie*2],&msg,sizeof(message_t))==-1){
+                            if((statut=write(socketJ[j0],&msg,sizeof(message_t)))==-1){
                                 perror("Erreur lors de l'envoi de M_POISS au joueur\n");
+                                exit(EXIT_FAILURE);
                             }
-                            if(write(socketJ[partie*2+1],&msg,sizeof(message_t))==-1){
+                            if(statut==0){
+                                pthread_mutex_lock(&terminal);
+                                printf("rien envoi XX :%id\n",id);
+                                pthread_mutex_unlock(&terminal);
+                            }
+                            pthread_mutex_lock(&terminal);
+                            printf("envoi XX :%id\n",id);
+                            pthread_mutex_unlock(&terminal);
+                            msg.typeMessage=M_POISS;
+                            msg.idPoisson=id;
+                            msg.direction=DROITE;
+                            if((statut=write(socketJ[j1],&msg,sizeof(message_t)))==-1){
                                 perror("Erreur lors de l'envoi de M_POISS au joueur\n");
+                                exit(EXIT_FAILURE);
+                            }
+                            if(statut==0){
+                                pthread_mutex_lock(&terminal);
+                                printf("rien envoi XX :%id\n",id);
+                                pthread_mutex_unlock(&terminal);
                             }
                             pthread_mutex_unlock(&sock[partie]);
+
+                            pthread_mutex_lock(&terminal);
+                            printf("envoi %id\n",id);
+                            pthread_mutex_unlock(&terminal);
+                            
 						}
 						if (change) {
 							pthread_mutex_unlock(&etang[partie].objet[y][x].mutObj);
@@ -433,8 +525,9 @@ void *routine_poisson(void *arg) {
 							pthread_mutex_unlock(&etang[partie].objet[y][x+1].mutObj);
 							pthread_mutex_unlock(&etang[partie].objet[y][x].mutObj);
 						}
-						break;
+						
 					}
+                    break;
 				case BAS:
 					if(y<hauteur-1){
 						pthread_mutex_lock(&etang[partie].objet[y+1][x].mutObj);
@@ -449,14 +542,41 @@ void *routine_poisson(void *arg) {
                             msg.typeMessage=M_POISS;
                             msg.idPoisson=id;
                             msg.direction=BAS;
+                            pthread_mutex_lock(&terminal);
+                            printf("p %id bas\n",id);
+                            pthread_mutex_unlock(&terminal);
+
                             pthread_mutex_lock(&sock[partie]);
-                            if(write(socketJ[partie*2],&msg,sizeof(message_t))==-1){
+                            if((statut=write(socketJ[j0],&msg,sizeof(message_t)))==-1){
                                 perror("Erreur lors de l'envoi de M_POISS au joueur\n");
+                                exit(EXIT_FAILURE);
                             }
-                            if(write(socketJ[partie*2+1],&msg,sizeof(message_t))==-1){
+                            if(statut==0){
+                                pthread_mutex_lock(&terminal);
+                                printf("rien envoi XX :%id\n",id);
+                                pthread_mutex_unlock(&terminal);
+                            }
+                            pthread_mutex_lock(&terminal);
+                            printf("envoi XX :%id\n",id);
+                            pthread_mutex_unlock(&terminal);
+                            msg.typeMessage=M_POISS;
+                            msg.idPoisson=id;
+                            msg.direction=BAS;
+                            if((statut=write(socketJ[j1],&msg,sizeof(message_t)))==-1){
                                 perror("Erreur lors de l'envoi de M_POISS au joueur\n");
+                                exit(EXIT_FAILURE);
+                            }
+                            if(statut==0){
+                                pthread_mutex_lock(&terminal);
+                                printf("rien envoi XX :%id\n",id);
+                                pthread_mutex_unlock(&terminal);
                             }
                             pthread_mutex_unlock(&sock[partie]);
+
+                            pthread_mutex_lock(&terminal);
+                            printf("envoi %id\n",id);
+                            pthread_mutex_unlock(&terminal);
+                            
 						}
 						if (change) {
 							pthread_mutex_unlock(&etang[partie].objet[y][x].mutObj);
@@ -466,8 +586,9 @@ void *routine_poisson(void *arg) {
 							pthread_mutex_unlock(&etang[partie].objet[y+1][x].mutObj);
 							pthread_mutex_unlock(&etang[partie].objet[y][x].mutObj);
 						}
-						break;
+						
 					}
+                    break;
 				case GAUCHE:
 					if(x!=0){
 						pthread_mutex_lock(&etang[partie].objet[y][x-1].mutObj);
@@ -482,14 +603,42 @@ void *routine_poisson(void *arg) {
                             msg.typeMessage=M_POISS;
                             msg.idPoisson=id;
                             msg.direction=GAUCHE;
+                            pthread_mutex_lock(&terminal);
+                            printf("p %id gauche\n",id);
+                            pthread_mutex_unlock(&terminal);
+
                             pthread_mutex_lock(&sock[partie]);
-                            if(write(socketJ[partie*2],&msg,sizeof(message_t))==-1){
+                            if((statut=write(socketJ[j0],&msg,sizeof(message_t)))==-1){
                                 perror("Erreur lors de l'envoi de M_POISS au joueur\n");
+                                exit(EXIT_FAILURE);
                             }
-                            if(write(socketJ[partie*2+1],&msg,sizeof(message_t))==-1){
+                            if(statut==0){
+                                pthread_mutex_lock(&terminal);
+                                printf("rien envoi XX :%id\n",id);
+                                pthread_mutex_unlock(&terminal);
+                            }
+                            pthread_mutex_lock(&terminal);
+                            printf("envoi XX :%id\n",id);
+                            pthread_mutex_unlock(&terminal);
+                            msg.typeMessage=M_POISS;
+                            msg.idPoisson=id;
+                            msg.direction=GAUCHE;
+
+                            if((statut=write(socketJ[j1],&msg,sizeof(message_t)))==-1){
                                 perror("Erreur lors de l'envoi de M_POISS au joueur\n");
+                                exit(EXIT_FAILURE);
+                            }
+                            if(statut==0){
+                                pthread_mutex_lock(&terminal);
+                                printf("rien envoi XX :%id\n",id);
+                                pthread_mutex_unlock(&terminal);
                             }
                             pthread_mutex_unlock(&sock[partie]);
+
+                            pthread_mutex_lock(&terminal);
+                            printf("envoi %id\n",id);
+                            pthread_mutex_unlock(&terminal);
+                            
 						}
 						if (change) {
 							pthread_mutex_unlock(&etang[partie].objet[y][x].mutObj);
@@ -499,27 +648,34 @@ void *routine_poisson(void *arg) {
 							pthread_mutex_unlock(&etang[partie].objet[y][x-1].mutObj);
 							pthread_mutex_unlock(&etang[partie].objet[y][x].mutObj);
 						}
-						break;
+						
 					}
+                    break;
 			}
 
 			pthread_mutex_lock(&abouges[partie]);
 			abouge[partie][max_poiss]++;
 			abouge[partie][id]=1;
 			pthread_mutex_lock(&nbPoissons[partie]);
-			if(abouge[partie][max_poiss]==nbpoiss[partie]){ /* c'est le dernier poisson qui bouge qui lance l'affichage */
+            /* dans le gérant
+			if(abouge[partie][max_poiss]==nbpoiss[partie]){  c'est le dernier poisson qui bouge qui lance l'affichage 
 				pthread_mutex_lock(&act[partie]);
 				actPoiss[partie]=LIBRE;
 				pthread_mutex_unlock(&act[partie]);
 			}
-
+            */
 			pthread_mutex_unlock(&nbPoissons[partie]);
 			pthread_mutex_unlock(&abouges[partie]);
 		}
 		if(unlock==0){
 			pthread_mutex_unlock(&abouges[partie]);
 		}
+        /*
+        pthread_mutex_lock(&terminal);
         printf("il s'est passé un truc %d\n",id);
+        pthread_mutex_unlock(&terminal);
+        */
+        sleep(1);
 		/* c'est pas comme ça qu'on va afficher une fois par tour
 			-> bloquer threadPoiss au bout de 1 tour et afficher ?
 					si oui, comment ?*/
@@ -619,26 +775,30 @@ void stopServeur(int sig){
 
 void * joueurTCP(void * args){ /*va communiquer avec un joueur*/
     int* paraThread;
-    int idJ,retour,partie,x,y;
+    int idJ,retour,partie,x,y,j,i;
     int tmpx,tmpy;
     message_t msg;
 
-    paraThread= (int*)args; /* [0] -> socket du joueur, [1] -> id du joueur */
+    paraThread= (int*)args; /* [0] -> socket du joueur, [1] -> id du joueur, [1] -> id de la partie */
     idJ=paraThread[1];
-    socketJ[idJ]=paraThread[0];
     partie=paraThread[2];
-    
-    /*
-    if(write(socket,&msg,sizeof(message_t))==-1){
-        perror("Erreur lors de l'envoi de WINGAME au joueur\n");
-        exit(EXIT_FAILURE);
+    j=sockParties[partie][idJ];
+    pthread_mutex_lock(&sock[partie]);
+    socketJ[j]=paraThread[0];
+    pthread_mutex_unlock(&sock[partie]);
+    if(idJ==0){
+        i=sockParties[partie][1];
     }
-    */
+    else{
+        i=sockParties[partie][0];
+    }
+    pthread_mutex_lock(&terminal);
     printf("les messages\n");
+    pthread_mutex_unlock(&terminal);
     while(boucle[partie]){
         tmpx=-1;
         tmpy=-1;
-        if((retour=read(socketJ[idJ], &msg, sizeof(message_t))) == -1) {
+        if((retour=read(socketJ[j], &msg, sizeof(message_t))) == -1) {
             if(errno !=EINTR && errno !=EAGAIN){
                 perror("Erreur lors de la lecture de la taille du message joueur ");
                 exit(EXIT_FAILURE);
@@ -660,7 +820,7 @@ void * joueurTCP(void * args){ /*va communiquer avec un joueur*/
                     pthread_mutex_unlock(&etang[partie].objet[y][x].mutObj);
                     msg.typeMessage=OKO_LIGNE;
                     pthread_mutex_lock(&sock[partie]);
-                    if(write(socketJ[idJ],&msg,sizeof(message_t))==-1){
+                    if(write(socketJ[j],&msg,sizeof(message_t))==-1){
                         perror("Erreur lors envoi ok ligne");
                     }
                     pthread_mutex_unlock(&sock[partie]);
@@ -697,14 +857,14 @@ void * joueurTCP(void * args){ /*va communiquer avec un joueur*/
                             pthread_mutex_lock(&etang[partie].objet[tmpy][tmpx].mutObj);
                             pthread_mutex_lock(&nbPoissons[partie]);
                             nbpoiss[partie]--;
-                            pthread_mutex_lock(&nbPoissons[partie]);
+                            pthread_mutex_unlock(&nbPoissons[partie]);
                             msg.typeMessage=PRISE;
                             msg.typeObjet=etang[partie].objet[tmpy][tmpx].typeObjet;
                             if(etang[partie].objet[tmpy][tmpx].typeObjet==POISSON){
                                 msg.typePoisson=etang[partie].objet[tmpy][tmpx].typePoisson;  
                             }
                             pthread_mutex_lock(&sock[partie]);
-                            if(write(socketJ[idJ],&msg,sizeof(message_t))==-1){
+                            if(write(socketJ[j],&msg,sizeof(message_t))==-1){
                                 perror("Erreur lors envoi ok ligne");
                             }
                             pthread_mutex_unlock(&sock[partie]);
@@ -714,7 +874,7 @@ void * joueurTCP(void * args){ /*va communiquer avec un joueur*/
                             msg.typeMessage=PRISE;
                             msg.typeObjet=VIDE;
                             pthread_mutex_lock(&sock[partie]);
-                            if(write(socketJ[idJ],&msg,sizeof(message_t))==-1){
+                            if(write(socketJ[j],&msg,sizeof(message_t))==-1){
                                 perror("Erreur lors envoi ok ligne");
                             }
                             pthread_mutex_unlock(&sock[partie]);
@@ -726,7 +886,7 @@ void * joueurTCP(void * args){ /*va communiquer avec un joueur*/
                         msg.typeMessage=PRISE;
                         msg.typeObjet=PNEU;
                         pthread_mutex_lock(&sock[partie]);
-                        if(write(socketJ[idJ],&msg,sizeof(message_t))==-1){
+                        if(write(socketJ[j],&msg,sizeof(message_t))==-1){
                             perror("Erreur lors envoi ok ligne");
                         }
                         pthread_mutex_unlock(&sock[partie]);
@@ -743,18 +903,12 @@ void * joueurTCP(void * args){ /*va communiquer avec un joueur*/
                 arret jTCP des deux joueurs et du threadTCP de la partie */
                 msg.typeMessage=ENDGAME;
                 pthread_mutex_lock(&sock[partie]);
-                if(write(socketJ[idJ],&msg,sizeof(message_t))==-1){
+                if(write(socketJ[j],&msg,sizeof(message_t))==-1){
                     perror("Erreur lors envoi ok ligne");
                 }
-                if(idJ==0){
-                    if(write(socketJ[idJ+1],&msg,sizeof(message_t))==-1){
-                        perror("Erreur lors envoi ok ligne");
-                    }
-                }
-                else{
-                    if(write(socketJ[idJ-1],&msg,sizeof(message_t))==-1){
-                        perror("Erreur lors envoi ok ligne");
-                    } 
+                msg.typeMessage=ENDGAME;
+                if(write(socketJ[i],&msg,sizeof(message_t))==-1){
+                    perror("Erreur lors envoi ok ligne");
                 }
                 pthread_mutex_unlock(&sock[partie]);
             
@@ -790,7 +944,7 @@ void * joueurTCP(void * args){ /*va communiquer avec un joueur*/
                             msg.position[1]=x;
                             msg.position[0]=y;
                             pthread_mutex_lock(&sock[partie]);
-                            if(write(socketJ[idJ-1],&msg,sizeof(message_t))==-1){
+                            if(write(socketJ[j],&msg,sizeof(message_t))==-1){
                                 perror("Erreur lors envoi ok ligne");
                             }
                             pthread_mutex_unlock(&sock[partie]);
@@ -813,7 +967,7 @@ void * joueurTCP(void * args){ /*va communiquer avec un joueur*/
                             msg.position[1]=x;
                             msg.position[0]=y;
                             pthread_mutex_lock(&sock[partie]);
-                            if(write(socketJ[idJ-1],&msg,sizeof(message_t))==-1){
+                            if(write(socketJ[j],&msg,sizeof(message_t))==-1){
                                 perror("Erreur lors envoi ok ligne");
                             }
                             pthread_mutex_unlock(&sock[partie]);
@@ -826,7 +980,7 @@ void * joueurTCP(void * args){ /*va communiquer avec un joueur*/
                             msg.position[1]=x;
                             msg.position[0]=y;
                             pthread_mutex_lock(&sock[partie]);
-                            if(write(socketJ[idJ-1],&msg,sizeof(message_t))==-1){
+                            if(write(socketJ[j],&msg,sizeof(message_t))==-1){
                                 perror("Erreur lors envoi ok ligne");
                             }
                             pthread_mutex_unlock(&sock[partie]);
@@ -839,16 +993,18 @@ void * joueurTCP(void * args){ /*va communiquer avec un joueur*/
     
     }
     free(paraThread);
+    return NULL;
 }
 
 void* pthreadTCP(void* args) {
     coord_t * coord;
 	int* paraThread;
-    int statut;
+    int statut,trouve;
     void * res;
     struct sockaddr_in adresseTCP;
     int j,i,idPartie;
-    int sockClient [2]={0,0};
+    int j0,j1;
+    int sockClient [2]={-1,-1};
     message_t msg;
     int paraA [3], paraB [3];
     paraThread= (int*)args; /* [0] -> adresse TCP, [1] -> id de la partie */
@@ -877,23 +1033,65 @@ void* pthreadTCP(void* args) {
     }
     Vas(idPartie,semid);
     j=0;
-    while(sockClient[0]==0 || sockClient[1]==0){/* && remplacé par || pour reception des 2 msg */
+    while(sockClient[0]==-1 || sockClient[1]==-1){/* && remplacé par || pour reception des 2 msg */
         /* Attente d'une connexion */
+        pthread_mutex_lock(&terminal);
         printf("Serveur : attente de connexion...\n");
+        pthread_mutex_unlock(&terminal);
         if((sockClient[j] = accept(fdTCP, NULL, NULL)) == -1) {
             perror("Erreur lors de la demande de connexion ");
             exit(EXIT_FAILURE);
         }
         if(read(sockClient[j], &msg, sizeof(message_t) ) == -1) {
-            perror("Erreur lors de la lecture de la taille du message socket ");
+            perror("Erreur lors de la lecture du message connection TCP ");
             exit(EXIT_FAILURE);
         }
         if(msg.typeMessage==CO_TCP_CS){
+            pthread_mutex_lock(&terminal);
             printf("TCP réussi\n");
+            pthread_mutex_unlock(&terminal);
         }
+        pthread_mutex_lock(&terminal);
         printf("Serveur TCP: message recu.\n");
+        pthread_mutex_unlock(&terminal);
         j++;
     }
+    j0=0;
+    trouve=0;
+    pthread_mutex_lock(&sock[idPartie]);
+    while(!trouve && j0< MAX_JOUEURS){
+        if(socketJ[j0]==-1){
+            trouve=1;
+            socketJ[j0]=sockClient[0];
+            pthread_mutex_lock(&terminal);
+            printf("sock cli 0: %d\n",sockClient[0]);
+            pthread_mutex_unlock(&terminal);
+            sockParties[idPartie][0]=j0;
+        }
+        else{
+            j0++;
+        }
+    }
+    trouve=0;
+    j1=0;
+    while(!trouve && j1< MAX_JOUEURS){
+        if(socketJ[j1]==-1){
+            trouve=1;
+            socketJ[j1]=sockClient[1];
+            pthread_mutex_lock(&terminal);
+            printf("sock cli 1: %d\n",sockClient[1]);
+            pthread_mutex_unlock(&terminal);
+            sockParties[idPartie][1]=j1;
+        }
+        else{
+            j1++;
+        }
+    }
+    pthread_mutex_unlock(&sock[idPartie]);
+
+    pthread_mutex_lock(&terminal);
+    printf("j0 = %d, j1=%d\n",j0,j1);
+    pthread_mutex_unlock(&terminal);
 /* lancement d'une partie*/
     msg.typeMessage = GAME;
     msg.nbPoissons=max_poiss;
@@ -905,14 +1103,28 @@ void* pthreadTCP(void* args) {
     simulation_initialiser(idPartie);
     
     /* envoi des informations GAME : id joueur, hauteur, largeur, grille */
-    for(j=0;j<2;j++){
-        msg.idJoueur=j;
-        printf("J'envoie au joueur %d\n",msg.idJoueur);
-        if(write(sockClient[j], &msg , sizeof(message_t)) == -1) {
-            perror("Erreur lors de l'envoi des infos GAME au joueur\n");
-            exit(EXIT_FAILURE);
-        }
+    
+    msg.idJoueur=0;
+    pthread_mutex_lock(&terminal);
+    printf("J'envoie au joueur %d\n",msg.idJoueur);
+    pthread_mutex_unlock(&terminal);
+    if(write(socketJ[j0], &msg , sizeof(message_t)) == -1) {
+        perror("Erreur lors de l'envoi des infos GAME au joueur\n");
+        exit(EXIT_FAILURE);
     }
+    msg.typeMessage = GAME;
+    msg.nbPoissons=max_poiss;
+    msg.largeur= largeur;
+    msg.hauteur= hauteur;
+    msg.idJoueur=1;
+    pthread_mutex_lock(&terminal);
+    printf("J'envoie au joueur %d\n",msg.idJoueur);
+    pthread_mutex_unlock(&terminal);
+    if(write(socketJ[j1], &msg , sizeof(message_t)) == -1) {
+        perror("Erreur lors de l'envoi des infos GAME au joueur\n");
+        exit(EXIT_FAILURE);
+    }
+    
     
     /*debut du jeu*/
     statut = pthread_create(&gerant[idPartie], NULL, GestionAction,(void *)&idPartie);
@@ -920,18 +1132,26 @@ void* pthreadTCP(void* args) {
     paraA[0]=sockClient[0];
     paraA[1]=0;
     paraA[2]=idPartie;
+    pthread_mutex_lock(&terminal);
     printf("creation thread %d\n", idPartie*2+0);
+    pthread_mutex_unlock(&terminal);
     statut= pthread_create(&jTCP[idPartie*2], NULL, joueurTCP,paraA);
     if(statut!=0){
+        pthread_mutex_lock(&terminal);
         printf("Pb création thread\n");
+        pthread_mutex_unlock(&terminal);
     }
     paraB[0]=sockClient[1];
     paraB[1]=1;
-    paraA[2]=idPartie;
+    paraB[2]=idPartie;
+    pthread_mutex_lock(&terminal);
     printf("creation thread %d\n", idPartie*2+1);
+    pthread_mutex_unlock(&terminal);
     statut= pthread_create(&jTCP[idPartie*2+1], NULL, joueurTCP,paraB);
     if(statut!=0){
+        pthread_mutex_lock(&terminal);
         printf("Pb création thread\n");
+        pthread_mutex_unlock(&terminal);
     }
     /* création de 20% de  MAX pour débuter */
 
@@ -941,11 +1161,14 @@ void* pthreadTCP(void* args) {
 		creerPoisson(coord);
 		statut=pthread_create(threads_poissons[idPartie][i], NULL,routine_poisson,(void *)coord);
 		if(statut!=0){
+            pthread_mutex_lock(&terminal);
 			printf("Pb création threadpoiss %d\n",i);
+            pthread_mutex_unlock(&terminal);
 		}
 	}
-
+    pthread_mutex_lock(&terminal);
     printf("poissons %d\n",nbpoiss[idPartie]);
+    pthread_mutex_unlock(&terminal);
 
     pthread_join(jTCP[idPartie*2],&res);
 
@@ -1019,12 +1242,13 @@ int main (int argc, char * argv []){
         pthread_mutex_init(&sock[i],NULL);
         /* INIT des COND*/
         pthread_cond_init(&bouge[i],NULL);
-        pthread_cond_init(&pose[i],NULL);
-        pthread_cond_init(&peche[i],NULL);
         /* INIT des variables d'actions*/
         actPoiss[i]=BOUGE;
         boucle[i]=1;
         nbpoiss[i]=0;
+        sockParties[i][0]=-1;
+        sockParties[i][1]=-1;
+        socketJ[i]=-1;
     }
     for(j=0;j<MAX_PARTIE;j++){
         abouge[j]=malloc(sizeof(int)*(max_poiss+1));
@@ -1074,21 +1298,29 @@ int main (int argc, char * argv []){
         /* Attente des clients */
     while(bouclePrincipale){
         /* Attente de la requête du client UDP */
+        pthread_mutex_lock(&terminal);
         printf("Serveur en attente du message du client.\n");
+        pthread_mutex_unlock(&terminal);
         if(nombreJoueurs < MAX_JOUEURS){
             if(recvfrom(sockfdUDP, &reqUDP, sizeof(message_t), 0,(struct sockaddr*)&adresseClientUDP[nombreJoueurs].adr, &taille) == -1) {
                 perror("Erreur lors de la réception du message ");
                 exit(EXIT_FAILURE);
             }
+            pthread_mutex_lock(&terminal);
             printf("Serveur : requete UDP reçue.\n");
+            pthread_mutex_unlock(&terminal);
             if(reqUDP.typeMessage != CO_UDP_CS){
+                pthread_mutex_lock(&terminal);
                 printf("Problème dans la réception\n Pas le bon type de message\n");
                 printf("Requete igonrée\n");
+                pthread_mutex_unlock(&terminal);
             }
             else{
                 adresseClientUDP[nombreJoueurs].vide=1;
                 nombreJoueurs++;
+                pthread_mutex_lock(&terminal);
                 printf("nb joueurs %d\n",nombreJoueurs);
+                pthread_mutex_unlock(&terminal);
                 if(nombreJoueurs > 0 && nombreJoueurs%2==0){
                     /*On associe deux joueurs ensemble*/
                     j1=0;
@@ -1138,10 +1370,12 @@ int main (int argc, char * argv []){
 
                     /*création d'un thread avec le numéro de port de adresseServeurTCP à cet instant*/   
                     paraThread[0]=port;
-                    paraThread[1]=numPort-1;
+                    paraThread[1]=nombrePartie;
                     statut= pthread_create(&threadTCP[nombreJoueurs/2-1], NULL, pthreadTCP,(void *)&paraThread);
                     if(statut!=0){
+                        pthread_mutex_lock(&terminal);
                         printf("Pb création thread\n");
+                        pthread_mutex_unlock(&terminal);
                         exit(EXIT_FAILURE);
                     }
                     if(pair){

@@ -259,7 +259,7 @@ void* ClicAction(void* arg){
 
 void simulation_initialiser() {
 	int i, j;
-
+    boucle=1;
 	for (i = 0; i < etang.hauteur; i++) {	/* Initialisation des cases de la simulation */
 		for (j = 0; j < etang.largeur; j++) {
 			etang.objet[i][j].typeObjet = VIDE;
@@ -475,13 +475,11 @@ int main (int argc, char * argv []){
         abouge[i]=0;
     }
     abouge[max_poiss]=0;
+    /*création locale de la grille*/
     etang.largeur=repTCP.largeur;
     etang.hauteur=repTCP.hauteur;
+
     etang.objet=malloc(sizeof(objet_t *)*etang.hauteur);
-
-    
-    /*création locale de la grille*/
-
     for(i=0;i<etang.hauteur;i++){
         etang.objet[i]=malloc(sizeof(objet_t)*etang.largeur);
         for(j=0;j<etang.largeur;j++){
@@ -496,13 +494,74 @@ int main (int argc, char * argv []){
     simulation_initialiser();
 	ncurses_initialiser();
 	ncurses_couleurs();
-
+    /* Definition de la palette */
+    init_pair(0, COLOR_WHITE, COLOR_BLACK); /* pour les pneus */
+    init_pair(1, COLOR_BLACK, COLOR_WHITE); /* pour les box */
+    init_pair(2, COLOR_WHITE, COLOR_BLUE); /* pour l'etang */
+    init_pair(3, COLOR_BLACK, COLOR_YELLOW); /* pour les poissons */
+    init_pair(4, COLOR_BLACK, COLOR_GREEN); /* pour les requins */
+	init_pair(5, COLOR_WHITE, COLOR_MAGENTA); /* pour les lignes */
+    init_pair(6, COLOR_BLACK, COLOR_RED); /* pour les dynamites */
+    /*
     creer_fenetre_box_sim(fen_box_sim,etang.hauteur,etang.largeur);
 	creer_fenetre_sim(fen_sim,fen_box_sim,etang.hauteur,etang.largeur);
 	creer_fenetre_box_msg(fen_box_msg,etang.largeur);
 	creer_fenetre_msg(fen_msg,fen_box_msg,etang.largeur);
     creer_fenetre_box_obj(fen_box_obj,etang.largeur);
 	creer_fenetre_obj(fen_obj,fen_box_obj,etang.hauteur,etang.largeur);
+    */
+    fen_box_sim = newwin(etang.hauteur + 2, etang.largeur + 2, 0, 0);
+	box(fen_box_sim, 0, 0);
+	wbkgd(fen_box_sim, COLOR_PAIR(1));
+	mvwprintw(fen_box_sim, 0, 3, "SIMULATION");	
+	wrefresh(fen_box_sim);
+
+    fen_sim = subwin(fen_box_sim,etang.hauteur, etang.largeur, 1, 1);
+	/* Colore le fond de la fenêtre */
+    wbkgd(fen_sim, COLOR_PAIR(2));
+    wrefresh(fen_sim);
+
+    fen_box_msg = newwin(HAUTEUR_MSG + 2, LARGEUR_MSG + 2, 0, etang.largeur + 2);
+	box(fen_box_msg, 0, 0);
+	wbkgd(fen_box_msg, COLOR_PAIR(1));
+	mvwprintw(fen_box_msg, 0, (etang.largeur + 2) / 2 - 4, "MESSAGES");
+	wrefresh(fen_box_msg);
+
+    fen_msg = subwin(fen_box_msg, HAUTEUR_MSG,LARGEUR_MSG, 1, etang.largeur + 3);
+	scrollok(fen_msg, TRUE);
+	wbkgd(fen_msg, COLOR_PAIR(5));
+    wrefresh(fen_msg);
+
+    fen_box_obj = newwin(HAUTEUR_MSG + 2, LARGEUR_MSG + 2, HAUTEUR_MSG + 2, etang.largeur + 2);
+	box(fen_box_obj, 0, 0);
+	wbkgd(fen_box_obj, COLOR_PAIR(1));
+	mvwprintw(fen_box_obj, 0, (etang.largeur + 2) / 2 - 4, "OBJETS");
+	wrefresh(fen_box_obj);
+
+    fen_obj = subwin(fen_box_obj, HAUTEUR_MSG,LARGEUR_MSG, HAUTEUR_MSG + 3, etang.largeur + 3);
+	/*scrollok(fen_obj, TRUE);*/
+	wbkgd(fen_obj, COLOR_PAIR(1));
+    /*definition des zones*/
+    for(i=0;i<6;i++){
+        wattron(fen_obj,COLOR_PAIR(0)); /*zone pneu*/
+        mvwprintw(fen_obj,etang.hauteur+4+i,etang.largeur+4,"             ");
+        wattroff(fen_obj,COLOR_PAIR(0));
+
+        wattron(fen_obj,COLOR_PAIR(4)); /*zone requin*/
+        mvwprintw(fen_obj,etang.hauteur+11+i,etang.largeur+4,"             ");
+        wattroff(fen_obj,COLOR_PAIR(4));
+
+        wattron(fen_obj,COLOR_PAIR(6)); /*zone dynamite*/
+        mvwprintw(fen_obj,etang.hauteur+4+i,etang.largeur+19,"             ");
+        wattroff(fen_obj,COLOR_PAIR(6));
+
+        wattron(fen_obj,COLOR_PAIR(5)); /*zone furtive*/
+        mvwprintw(fen_obj,etang.hauteur+11+i,etang.largeur+19,"             ");
+        wattroff(fen_obj,COLOR_PAIR(5));
+    }
+    wrefresh(fen_obj);
+
+    mvwprintw(fen_msg,0,0,"fen créées");
 
     statut = pthread_create(&gerant, NULL, GestionAction, NULL);
 	if(statut!=0){
