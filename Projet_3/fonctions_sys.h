@@ -19,6 +19,8 @@
 
 #include <sys/select.h>
 #include <netinet/in.h> 
+#include <ncurses.h>
+#include "ncurses.h"
 
 #include "struct_message.h"
 
@@ -29,5 +31,11 @@ void videMessage(message_t*);
 void Peux(int sem,int semid);
 void Vas(int sem,int semid);
 void swap_poiss(objet_t * obj1, objet_t * obj2, int mode);
-
+void kill_poiss(objet_t * obj , int mode);
+void creer_fenetre_box_sim(WINDOW * fen_box_sim,int hauteur, int largeur);
+void creer_fenetre_sim(WINDOW * fen_sim,WINDOW * fen_box_sim,int hauteur, int largeur);
+void creer_fenetre_box_msg(WINDOW *fen_box_msg,int largeur);
+void creer_fenetre_msg(WINDOW *fen_msg , WINDOW *fen_box_msg, int largeur);
+void creer_fenetre_box_obj(WINDOW *fen_box_obj, int largeur);
+void creer_fenetre_obj(WINDOW * fen_obj, WINDOW *fen_box_obj,int hauteur, int largeur);
 #endif

@@ -88,6 +88,5 @@ archive: clean
 ncurses.o:ncurses.c ncurses.h
 fonctions_sys.o:fonctions_sys.c fonctions_sys.h struct_message.h
 serveur.o: serveur.c struct_message.h fonctions_sys.h
-joueur.o: joueur.c struct_message.h fonctions_sys.h
-poiss.o:poiss.c struct_message.h fonctions_sys.h ncurses.h
+joueur.o: joueur.c struct_message.h fonctions_sys.h ncurses.h
 

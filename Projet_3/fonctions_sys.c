@@ -157,9 +157,85 @@ void kill_poiss(objet_t * obj, int mode){
                    /* ancien */   /*nouveau*/
     obj->typeObjet=VIDE;
     obj->idPoiss=-1;
+    obj->idJoueur=-1;
     obj->typePoisson=0;
     /* echange thread poiss*/
     if(mode == 1){ /* si on est dans le serveur */
         pthread_cancel(obj->threadPoisson);
     }
+}
+void creer_fenetre_box_sim(WINDOW * fen_box_sim,int hauteur, int largeur) {
+/*Creation de la fenetre de contour de la fenetre de simulation */
+	fen_box_sim = newwin(hauteur + 2, largeur + 2, 0, 0);
+	box(fen_box_sim, 0, 0);
+	wbkgd(fen_box_sim, COLOR_PAIR(1));
+	mvwprintw(fen_box_sim, 0, 3, "SIMULATION");	
+	wrefresh(fen_box_sim);
+}
+
+void creer_fenetre_sim(WINDOW * fen_sim,WINDOW * fen_box_sim,int hauteur, int largeur) {
+/* Creation de la fenetre de simulation dans la fenetre de contour */
+/* La simulation est affichee dans cette fenetre */
+	fen_sim = subwin(fen_box_sim,hauteur, largeur, 1, 1);
+	/* Colore le fond de la fenêtre */
+    wbkgd(fen_sim, COLOR_PAIR(2));
+    wrefresh(fen_sim);
+}
+
+void creer_fenetre_box_msg(WINDOW *fen_box_msg,int largeur) {
+/* Creation de la fenetre de contour de la fenetre de messages */
+	fen_box_msg = newwin(HAUTEUR_MSG + 2, LARGEUR_MSG + 2, 0, largeur + 2);
+	box(fen_box_msg, 0, 0);
+	wbkgd(fen_box_msg, COLOR_PAIR(1));
+	mvwprintw(fen_box_msg, 0, (largeur + 2) / 2 - 4, "MESSAGES");
+	wrefresh(fen_box_msg);
+}
+
+void creer_fenetre_msg(WINDOW *fen_msg , WINDOW *fen_box_msg, int largeur) {
+/* Creation de la fenetre de messages dans la fenetre de contour */
+/* Les messages indicatifs des evenements de la simulation et de l'interface */
+/* utilisateur sont affiches dans cete fenetre */
+	fen_msg = subwin(fen_box_msg, HAUTEUR_MSG,LARGEUR_MSG, 1, largeur + 3);
+	scrollok(fen_msg, TRUE);
+	wbkgd(fen_msg, COLOR_PAIR(5));
+    wrefresh(fen_msg);
+}
+
+void creer_fenetre_box_obj(WINDOW *fen_box_obj, int largeur) {
+/* Creation de la fenetre de contour de la fenetre de messages */
+	fen_box_obj = newwin(HAUTEUR_MSG + 2, LARGEUR_MSG + 2, HAUTEUR_MSG + 2, largeur + 2);
+	box(fen_box_obj, 0, 0);
+	wbkgd(fen_box_obj, COLOR_PAIR(1));
+	mvwprintw(fen_box_obj, 0, (largeur + 2) / 2 - 4, "OBJETS");
+	wrefresh(fen_box_obj);
+}
+
+void creer_fenetre_obj(WINDOW * fen_obj, WINDOW *fen_box_obj,int hauteur, int largeur) {
+    int i;
+/* Creation de la fenetre de messages dans la fenetre de contour */
+/* Les messages indicatifs des evenements de la simulation et de l'interface */
+/* utilisateur sont affiches dans cete fenetre */
+	fen_obj = subwin(fen_box_obj, HAUTEUR_MSG,LARGEUR_MSG, HAUTEUR_MSG + 3, largeur + 3);
+	/*scrollok(fen_obj, TRUE);*/
+	wbkgd(fen_obj, COLOR_PAIR(1));
+    /*definition des zones*/
+    for(i=0;i<6;i++){
+        wattron(fen_obj,COLOR_PAIR(0)); /*zone pneu*/
+        mvwprintw(fen_obj,hauteur+4+i,largeur+4,"             ");
+        wattroff(fen_obj,COLOR_PAIR(0));
+
+        wattron(fen_obj,COLOR_PAIR(4)); /*zone requin*/
+        mvwprintw(fen_obj,hauteur+11+i,largeur+4,"             ");
+        wattroff(fen_obj,COLOR_PAIR(4));
+
+        wattron(fen_obj,COLOR_PAIR(6)); /*zone dynamite*/
+        mvwprintw(fen_obj,hauteur+4+i,largeur+19,"             ");
+        wattroff(fen_obj,COLOR_PAIR(6));
+
+        wattron(fen_obj,COLOR_PAIR(5)); /*zone furtive*/
+        mvwprintw(fen_obj,hauteur+11+i,largeur+19,"             ");
+        wattroff(fen_obj,COLOR_PAIR(5));
+    }
+
+    wrefresh(fen_obj);
 }

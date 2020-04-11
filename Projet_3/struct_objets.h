@@ -26,7 +26,6 @@
 #define BOUGE     1
 #define AFFICHE   2
 #define PECHE     3
-#define POSE      4
 
 #define HAUT      0
 #define BAS       2
@@ -75,9 +74,10 @@ typedef struct j{
     pthread_mutex_t mutJoueur;
     /*mutex et variable cond*/
 } joueur_t;
+
     /* structre de coordonnées */
 typedef struct c {
-	int x,y,partie;
+	int x,y,partie,requin;
 } coord_t;
 
 /* structre de poisson pour le joueur */
