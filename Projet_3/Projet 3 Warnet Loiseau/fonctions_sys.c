@@ -33,15 +33,6 @@ int recupererSemaphores(int CLE_S) {
     }
     return semid;
 }
-
-void videMessage(message_t* msg){
-    msg->typeMessage=-1;
-    msg->position[0]=-1;
-    msg->position[1]=-1;
-    msg->idJoueur=-1;
-    msg->idPartie=-1;
-}
-
 /**
  * P(S) avec S un sémaphore.
  * @param sem     le sémaphore concerne
@@ -164,6 +155,7 @@ void kill_poiss(objet_t * obj, int mode){
         pthread_cancel(obj->threadPoisson);
     }
 }
+
 void creer_fenetre_box_sim(WINDOW * fen_box_sim,int hauteur, int largeur) {
 /*Creation de la fenetre de contour de la fenetre de simulation */
 	fen_box_sim = newwin(hauteur + 2, largeur + 2, 0, 0);
@@ -210,7 +202,7 @@ void creer_fenetre_box_obj(WINDOW *fen_box_obj, int largeur) {
 	wrefresh(fen_box_obj);
 }
 
-void creer_fenetre_obj(WINDOW * fen_obj, WINDOW *fen_box_obj,int hauteur, int largeur) {
+void creer_fenetre_obj(WINDOW * fen_obj, WINDOW *fen_box_obj,int hauteur, int largeur){
     int i;
 /* Creation de la fenetre de messages dans la fenetre de contour */
 /* Les messages indicatifs des evenements de la simulation et de l'interface */
@@ -221,20 +213,27 @@ void creer_fenetre_obj(WINDOW * fen_obj, WINDOW *fen_box_obj,int hauteur, int la
     /*definition des zones*/
     for(i=0;i<6;i++){
         wattron(fen_obj,COLOR_PAIR(0)); /*zone pneu*/
-        mvwprintw(fen_obj,hauteur+4+i,largeur+4,"             ");
+        mvwprintw(fen_obj,1+i,1,"            ");
+
         wattroff(fen_obj,COLOR_PAIR(0));
+        
 
         wattron(fen_obj,COLOR_PAIR(4)); /*zone requin*/
-        mvwprintw(fen_obj,hauteur+11+i,largeur+4,"             ");
+        mvwprintw(fen_obj,8+i,1,"            ");
+
         wattroff(fen_obj,COLOR_PAIR(4));
+        
 
         wattron(fen_obj,COLOR_PAIR(6)); /*zone dynamite*/
-        mvwprintw(fen_obj,hauteur+4+i,largeur+19,"             ");
+        mvwprintw(fen_obj,1+i,16,"            ");
+
         wattroff(fen_obj,COLOR_PAIR(6));
+        
 
         wattron(fen_obj,COLOR_PAIR(5)); /*zone furtive*/
-        mvwprintw(fen_obj,hauteur+11+i,largeur+19,"             ");
+        mvwprintw(fen_obj,8+i,16,"            ");
         wattroff(fen_obj,COLOR_PAIR(5));
     }
+    
     wrefresh(fen_obj);
 }

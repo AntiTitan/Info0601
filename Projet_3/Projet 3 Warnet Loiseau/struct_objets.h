@@ -36,8 +36,15 @@
 #define POSE      1
 #define BLOQUE    2
 
+#define MORDU  1
+#define LIBRE  0
+
 #define LARGEUR_MSG 30
 #define HAUTEUR_MSG 15
+
+#define MAX_PARTIE 5
+#define MAX_JOUEURS MAX_PARTIE*2 /*2 joueurs par parties*/
+
 
 /* structures */
 
@@ -53,10 +60,9 @@ typedef struct obj{
     int idLigne2; /* au cas où deux joueurs posent leur ligne au même endroit*/
     int gagnantLigne;
     int posLigne;
-    int position [2];
 
-    pthread_t threadPoisson; /* à ne pas envoyer */
-    pthread_mutex_t mutObj;  /* à ne pas envoyer */
+    pthread_t threadPoisson; 
+    pthread_mutex_t mutObj;  
 } objet_t;
 
     /* grille représentant l'étang */

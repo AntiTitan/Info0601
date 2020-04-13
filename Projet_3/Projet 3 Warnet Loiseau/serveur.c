@@ -6,14 +6,20 @@
 
 int boucle[MAX_PARTIE];
 int bouclePrincipale=1;
+
 int semid;
+
 int sockfdUDP;
 int fdTCP;
-int largeur, hauteur;
-int max_poiss,nbpoiss[MAX_PARTIE],actPoiss[MAX_PARTIE];
-int * abouge [MAX_PARTIE];
 int socketJ [MAX_JOUEURS];
 int sockParties [MAX_PARTIE][2];
+
+int max_poiss,nbpoiss[MAX_PARTIE];
+
+int actPoiss[MAX_PARTIE];
+int * abouge [MAX_PARTIE];
+
+int largeur, hauteur;
 grille_t etang [MAX_PARTIE];
 
 pthread_t threadTCP[MAX_PARTIE];
@@ -24,7 +30,6 @@ pthread_t gerant[MAX_PARTIE];
 pthread_mutex_t nbPoissons [MAX_PARTIE];
 pthread_mutex_t abouges [MAX_PARTIE];
 pthread_mutex_t act [MAX_PARTIE];
-pthread_mutex_t tour [MAX_PARTIE];
 pthread_mutex_t sock[MAX_PARTIE];
 pthread_mutex_t terminal=PTHREAD_MUTEX_INITIALIZER;
 
@@ -32,14 +37,23 @@ pthread_cond_t bouge [MAX_PARTIE];
 
 void* GestionAction(void* arg) {
     int * partie = (int*)arg;
+    int i;
     pthread_mutex_lock(&terminal);
     printf("gerant %d démarre\n",*partie);
     pthread_mutex_unlock(&terminal);
+
     while(boucle[*partie]) {
         pthread_mutex_lock(&act[*partie]);
         /* variable bloquée */
 
-        if (actPoiss[*partie] == BOUGE) {
+        if (actPoiss[*partie] == LIBRE) {
+            sleep(3);
+            pthread_mutex_lock(&abouges[*partie]);
+            for(i=0;i<=max_poiss;i++){
+                abouge[*partie][i]=0;
+            }
+            pthread_mutex_unlock(&abouges[*partie]);
+            actPoiss[*partie] = BOUGE;
             pthread_cond_broadcast(&bouge[*partie]);
         }
 
@@ -175,7 +189,7 @@ void *routine_poisson(void *arg) {
     int j0,j1;
     int tmpx, tmpy,trouve=0;
     /*tableau int enfuite (-> poisson en fuite) et tab int continue (-> poisson attrapé)*/
-	sleep(3);
+	
 	y = coord->y;
 	x = coord->x;
     partie= coord->partie;
@@ -656,14 +670,15 @@ void *routine_poisson(void *arg) {
 			pthread_mutex_lock(&abouges[partie]);
 			abouge[partie][max_poiss]++;
 			abouge[partie][id]=1;
+            pthread_mutex_unlock(&abouges[partie]);
+
 			pthread_mutex_lock(&nbPoissons[partie]);
-            /* dans le gérant
-			if(abouge[partie][max_poiss]==nbpoiss[partie]){  c'est le dernier poisson qui bouge qui lance l'affichage 
+			if(abouge[partie][max_poiss]==nbpoiss[partie]){  /*c'est le dernier poisson qui bloque tous les poissons pendant 2 sec */
 				pthread_mutex_lock(&act[partie]);
 				actPoiss[partie]=LIBRE;
 				pthread_mutex_unlock(&act[partie]);
 			}
-            */
+            
 			pthread_mutex_unlock(&nbPoissons[partie]);
 			pthread_mutex_unlock(&abouges[partie]);
 		}
@@ -675,10 +690,6 @@ void *routine_poisson(void *arg) {
         printf("il s'est passé un truc %d\n",id);
         pthread_mutex_unlock(&terminal);
         */
-        sleep(1);
-		/* c'est pas comme ça qu'on va afficher une fois par tour
-			-> bloquer threadPoiss au bout de 1 tour et afficher ?
-					si oui, comment ?*/
 	}
 	return NULL;
 }
@@ -716,7 +727,7 @@ void simulation_stopper(int partie) {
 		free(threads_poissons[partie][i]);
 	}
 	pthread_mutex_unlock(&nbPoissons[partie]);
-	/* pthread_cancel(gerant[partie]); */
+	pthread_cancel(gerant[partie]); 
 	free(threads_poissons[partie]);
 	free(abouge[partie]);
 	for(i=0;i<hauteur;i++){
@@ -724,17 +735,18 @@ void simulation_stopper(int partie) {
 	}
 	free(etang[partie].objet);
 }
-/* faire un stop partie */
+
 void stopPartie(int partie){
     void * res;
-    
-    boucle[partie]=0;
-    
-    if(close(socketJ[partie*2]) == -1) {
+    int j0,j1;
+    j0=sockParties[partie][0];
+    j1=sockParties[partie][1];
+    simulation_stopper(partie);
+    if(close(socketJ[j0]) == -1) {
         perror("Erreur lors de la fermeture de la socket ");
         exit(EXIT_FAILURE);
     }
-    if(close(socketJ[partie*2+1]) == -1) {
+    if(close(socketJ[j1]) == -1) {
         perror("Erreur lors de la fermeture de la socket ");
         exit(EXIT_FAILURE);
     }
@@ -753,11 +765,8 @@ void stopServeur(int sig){
         for(j=0;j<MAX_PARTIE;j++){
             boucle[j]=0;
         }
+        bouclePrincipale =0;
         supprimerSemaphores(semid);
-        if(close(sockfdUDP) == -1) {
-            perror("Erreur lors de la fermeture de la socket ");
-            exit(EXIT_FAILURE);
-        }
         for(j=0;j<MAX_PARTIE;j++){
             pthread_join(threadTCP[j],&res);
             stopPartie(j);
@@ -765,12 +774,13 @@ void stopServeur(int sig){
         for(j=0;j<MAX_JOUEURS;j++){
             pthread_join(jTCP[j],&res);
         }
-        bouclePrincipale =0;
+        if(close(sockfdUDP) == -1) {
+            perror("Erreur lors de la fermeture de la socket ");
+            exit(EXIT_FAILURE);
+        }
         /*stop simul pour MAX_PARTIE*/
     }
 }
-
-
 
 
 void * joueurTCP(void * args){ /*va communiquer avec un joueur*/
@@ -780,12 +790,9 @@ void * joueurTCP(void * args){ /*va communiquer avec un joueur*/
     message_t msg;
 
     paraThread= (int*)args; /* [0] -> socket du joueur, [1] -> id du joueur, [1] -> id de la partie */
-    idJ=paraThread[1];
-    partie=paraThread[2];
+    idJ=paraThread[0];
+    partie=paraThread[1];
     j=sockParties[partie][idJ];
-    pthread_mutex_lock(&sock[partie]);
-    socketJ[j]=paraThread[0];
-    pthread_mutex_unlock(&sock[partie]);
     if(idJ==0){
         i=sockParties[partie][1];
     }
@@ -992,7 +999,6 @@ void * joueurTCP(void * args){ /*va communiquer avec un joueur*/
         }
     
     }
-    free(paraThread);
     return NULL;
 }
 
@@ -1006,7 +1012,7 @@ void* pthreadTCP(void* args) {
     int j0,j1;
     int sockClient [2]={-1,-1};
     message_t msg;
-    int paraA [3], paraB [3];
+    int paraA [2], paraB [2];
     paraThread= (int*)args; /* [0] -> adresse TCP, [1] -> id de la partie */
     idPartie = paraThread[1];
     /* Création de la socket TCP */
@@ -1039,7 +1045,9 @@ void* pthreadTCP(void* args) {
         printf("Serveur : attente de connexion...\n");
         pthread_mutex_unlock(&terminal);
         if((sockClient[j] = accept(fdTCP, NULL, NULL)) == -1) {
-            perror("Erreur lors de la demande de connexion ");
+            pthread_mutex_lock(&terminal);
+            printf("Erreur lors de la demande de connexion ");
+            pthread_mutex_unlock(&terminal);
             exit(EXIT_FAILURE);
         }
         if(read(sockClient[j], &msg, sizeof(message_t) ) == -1) {
@@ -1062,10 +1070,10 @@ void* pthreadTCP(void* args) {
     while(!trouve && j0< MAX_JOUEURS){
         if(socketJ[j0]==-1){
             trouve=1;
-            socketJ[j0]=sockClient[0];
+            socketJ[j0]=sockClient[0];/*
             pthread_mutex_lock(&terminal);
             printf("sock cli 0: %d\n",sockClient[0]);
-            pthread_mutex_unlock(&terminal);
+            pthread_mutex_unlock(&terminal);*/
             sockParties[idPartie][0]=j0;
         }
         else{
@@ -1077,10 +1085,10 @@ void* pthreadTCP(void* args) {
     while(!trouve && j1< MAX_JOUEURS){
         if(socketJ[j1]==-1){
             trouve=1;
-            socketJ[j1]=sockClient[1];
+            socketJ[j1]=sockClient[1];/*
             pthread_mutex_lock(&terminal);
             printf("sock cli 1: %d\n",sockClient[1]);
-            pthread_mutex_unlock(&terminal);
+            pthread_mutex_unlock(&terminal);*/
             sockParties[idPartie][1]=j1;
         }
         else{
@@ -1090,9 +1098,9 @@ void* pthreadTCP(void* args) {
     pthread_mutex_unlock(&sock[idPartie]);
 
     pthread_mutex_lock(&terminal);
-    printf("j0 = %d, j1=%d\n",j0,j1);
+    printf("Partie %d j0 = %d, j1=%d\n",idPartie,j0,j1);
     pthread_mutex_unlock(&terminal);
-/* lancement d'une partie*/
+ /* lancement d'une partie*/
     msg.typeMessage = GAME;
     msg.nbPoissons=max_poiss;
     msg.largeur= largeur;
@@ -1129,25 +1137,18 @@ void* pthreadTCP(void* args) {
     /*debut du jeu*/
     statut = pthread_create(&gerant[idPartie], NULL, GestionAction,(void *)&idPartie);
 
-    paraA[0]=sockClient[0];
-    paraA[1]=0;
-    paraA[2]=idPartie;
-    pthread_mutex_lock(&terminal);
-    printf("creation thread %d\n", idPartie*2+0);
-    pthread_mutex_unlock(&terminal);
-    statut= pthread_create(&jTCP[idPartie*2], NULL, joueurTCP,paraA);
+    paraA[0]=0;
+    paraA[1]=idPartie;
+    statut= pthread_create(&jTCP[j0], NULL, joueurTCP,paraA);
     if(statut!=0){
         pthread_mutex_lock(&terminal);
         printf("Pb création thread\n");
         pthread_mutex_unlock(&terminal);
     }
-    paraB[0]=sockClient[1];
-    paraB[1]=1;
-    paraB[2]=idPartie;
-    pthread_mutex_lock(&terminal);
-    printf("creation thread %d\n", idPartie*2+1);
-    pthread_mutex_unlock(&terminal);
-    statut= pthread_create(&jTCP[idPartie*2+1], NULL, joueurTCP,paraB);
+    paraB[0]=1;
+    paraB[1]=idPartie;
+    
+    statut= pthread_create(&jTCP[j1], NULL, joueurTCP,paraB);
     if(statut!=0){
         pthread_mutex_lock(&terminal);
         printf("Pb création thread\n");
@@ -1167,26 +1168,19 @@ void* pthreadTCP(void* args) {
 		}
 	}
     pthread_mutex_lock(&terminal);
-    printf("poissons %d\n",nbpoiss[idPartie]);
+    printf("On crée %d poissons pour commencer\n",nbpoiss[idPartie]);
     pthread_mutex_unlock(&terminal);
 
-    pthread_join(jTCP[idPartie*2],&res);
+    pthread_join(jTCP[j0],&res);
 
-    pthread_join(jTCP[idPartie*2+1],&res);
+    pthread_join(jTCP[j1],&res);
     pthread_join(gerant[idPartie],&res);
-    /* XXX cancel aussi peut être */
-    /* join gerant et joueurTCP */
-    free(paraThread);
     return EXIT_SUCCESS;
 }
 
-
-
-
-
 int main (int argc, char * argv []){
 
-/*déclarations*/
+ /*déclarations*/
     struct sigaction action;
 
     int numPort=1,pair=0,port;
@@ -1202,11 +1196,11 @@ int main (int argc, char * argv []){
     int nombreJoueurs=0,j1=0,j2=0,trouve=0,nombrePartie=-1;
     reponseUDP_t adresseClientUDP [MAX_JOUEURS];
 
-/*vérification des arguments
+ /*vérification des arguments
     adresse IP
     numéro de port UDP sur lequel il va attendre les clients
     dimension de l'étang (largeur + hauteur)
-*/
+ */
 
     if(argc != 4) {
         fprintf(stderr, "Usage : %s  port dimensions (L | H)\n", argv[0]);
@@ -1238,7 +1232,6 @@ int main (int argc, char * argv []){
         pthread_mutex_init(&nbPoissons[i],NULL);
         pthread_mutex_init(&abouges[i],NULL);
         pthread_mutex_init(&act[i],NULL);
-        pthread_mutex_init(&tour[i],NULL);
         pthread_mutex_init(&sock[i],NULL);
         /* INIT des COND*/
         pthread_cond_init(&bouge[i],NULL);
@@ -1257,7 +1250,7 @@ int main (int argc, char * argv []){
         }
     }
     
-/*Création tableau sémaphore pour la connexion*/
+ /*Création tableau sémaphore pour la connexion*/
 
     semid = creerSemaphores(CLE_SEM);
 
@@ -1272,7 +1265,7 @@ int main (int argc, char * argv []){
         exit(EXIT_FAILURE);
     }
 
-/*attente des clients en UDP*/
+ /*attente des clients en UDP*/
 
         /* Création de la socket UDP */
 
@@ -1391,19 +1384,8 @@ int main (int argc, char * argv []){
         
     }
     
-/*envoi aux client des informations TCP*/
 
-/*création de la grille et début partie*/
-
-/*partie*/
-    /*pose de ligne ->chrono*/
-    /*retour de la ligne*/
-
-    /*mode furtif*/
-
-    /*déplacement poisson ->avertir les clients*/
-
-/*fin quand réception gagné ou déconnexion*/ 
+ /*fin quand réception gagné ou déconnexion*/ 
     for(j=0;j<MAX_PARTIE;j++){
         pthread_join(threadTCP[j],&res);
     }

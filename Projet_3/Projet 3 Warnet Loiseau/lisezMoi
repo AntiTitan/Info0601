@@ -1,0 +1,7 @@
+Pour lancer le serveur, on effectue la commande
+./serveur (num de port) (largeur) (hauteur)
+On lance ensuite au moins deux joueurs
+./joueur (adresse IPV4) (num de port)
+
+Si le tableau de sémaphore n'est pas effacé au moment de lancer le serveur, il faut lancer
+make cleanIPC

@@ -27,11 +27,12 @@
 int creerSemaphores(int CLE_S);
 int supprimerSemaphores(int semid);
 int recupererSemaphores(int CLE_S);
-void videMessage(message_t*);
 void Peux(int sem,int semid);
 void Vas(int sem,int semid);
+
 void swap_poiss(objet_t * obj1, objet_t * obj2, int mode);
 void kill_poiss(objet_t * obj , int mode);
+
 void creer_fenetre_box_sim(WINDOW * fen_box_sim,int hauteur, int largeur);
 void creer_fenetre_sim(WINDOW * fen_sim,WINDOW * fen_box_sim,int hauteur, int largeur);
 void creer_fenetre_box_msg(WINDOW *fen_box_msg,int largeur);

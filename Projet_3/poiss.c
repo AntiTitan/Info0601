@@ -414,19 +414,6 @@ void * affichage(void * arg){
 						}
 						/*fond noir ou bleu selon idJ*/
 						break;
-					case(LIGNE) :
-						/*tester idJoueur de la ligne*/
-						if(etang.objet[i][j].idJoueur==joueur.idJoueur){
-							wattron(fen_sim,COLOR_PAIR(5));
-							mvwprintw(fen_sim, i, j, " "); /* fond gris ou violet */
-							wattron(fen_sim,COLOR_PAIR(5));
-						}
-						else{
-							
-							mvwprintw(fen_sim, i, j, " "); /* fond bleu */
-						}
-						/*fond gris ou bleu selon idJ*/
-						break;
 				}
 				pthread_mutex_unlock(&etang.objet[i][j].mutObj); 
 				

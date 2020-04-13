@@ -29,7 +29,7 @@
 /* pose de ligne CS*/
 #define P_LIGNE      6
 /* autorisation ou non de la pose de ligne */
-#define OKO_LIGNE     7
+#define OKO_LIGNE    7
 /* relevé de ligne CS */
 #define R_LIGNE      8
 /* resultat de la pêche SC */
@@ -46,13 +46,6 @@
 #define GAME         14
 /*pose d'un objet par un joueur */
 #define PIEGE        15
-
-#define MORDU  1
-#define LIBRE  0
-
-
-#define MAX_PARTIE 5
-#define MAX_JOUEURS MAX_PARTIE*2 /*2 joueurs par parties*/
 
 /*struct*/
 
