@@ -551,7 +551,7 @@ int main (int argc, char * argv []){
         mvwprintw(fen_obj,8+i,16,"            ");
         wattroff(fen_obj,COLOR_PAIR(5));
     }
-    
+    pthread_mutex_unlock(&obj);
     wrefresh(fen_obj);
 
     pthread_mutex_lock(&obj);

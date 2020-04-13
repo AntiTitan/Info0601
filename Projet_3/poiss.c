@@ -13,9 +13,9 @@
 #define BOUGE 1
 #define AFFICHE 2
 
-typedef struct c {
+typedef struct cp {
 	int x,y;
-} coord_t;
+} coordp_t;
 
 int max_poiss,nbpoiss,actPoiss=0;
 int * abouge,boucle=1;
@@ -76,7 +76,7 @@ void simulation_stopper() {
 	free(fen_box_sim);
 }
 
-void creer_fenetre_box_sim() {
+void creer_fenetre_box_simp() {
 /*Creation de la fenetre de contour de la fenetre de simulation */
 	
 	fen_box_sim = newwin(etang.hauteur + 2, etang.largeur + 2, 0, 0);
@@ -86,7 +86,7 @@ void creer_fenetre_box_sim() {
 	wrefresh(fen_box_sim);
 }
 
-void creer_fenetre_sim() {
+void creer_fenetre_simp() {
 /* Creation de la fenetre de simulation dans la fenetre de contour */
 /* La simulation est affichee dans cette fenetre */
 	fen_sim = subwin(fen_box_sim,etang.hauteur, etang.largeur, 1, 1);
@@ -95,7 +95,7 @@ void creer_fenetre_sim() {
     wrefresh(fen_sim);
 }
 
-void creer_fenetre_box_msg() {
+void creer_fenetre_box_msgp() {
 /* Creation de la fenetre de contour de la fenetre de messages */
 	fen_box_msg = newwin(15 + 2, 30 + 2, 0, etang.largeur + 2);
 	box(fen_box_msg, 0, 0);
@@ -104,7 +104,7 @@ void creer_fenetre_box_msg() {
 	wrefresh(fen_box_msg);
 }
 
-void creer_fenetre_msg() {
+void creer_fenetre_msgp() {
 /* Creation de la fenetre de messages dans la fenetre de contour */
 /* Les messages indicatifs des evenements de la simulation et de l'interface */
 /* utilisateur sont affiches dans cete fenetre */
@@ -138,7 +138,7 @@ void* GestionPref(void* arg) {
     return NULL;
 }
 
-void creerPoisson(coord_t * coord){
+void creerPoisson(coordp_t * coord){
 	int x,y,place=0,id,type;
 	
 	pthread_mutex_lock(&poissons);
@@ -184,7 +184,7 @@ void creerPoisson(coord_t * coord){
 }
 
 void *routine_poisson(void *arg) {
-	coord_t *coord = (coord_t *) arg;
+	coordp_t *coord = (coordp_t *) arg;
 	int dir, x, y, change,id,unlock=0;
     /*tableau int enfuite (-> poisson en fuite) et tab int continue (-> poisson attrapé)*/
 	sleep(3);
@@ -451,7 +451,7 @@ void stopPoisson(int sig){
 
 int main(int argc, char * argv []){
 	struct sigaction action;
-	coord_t * coord;
+	coordp_t * coord;
 	void * res;
 	int  i,j,statut;
 
@@ -488,17 +488,23 @@ int main(int argc, char * argv []){
 	simulation_initialiser();
 	ncurses_initialiser();
 	ncurses_couleurs();
-	
+	init_pair(0, COLOR_WHITE, COLOR_BLACK); /* pour les pneus et pneu */
+    init_pair(1, COLOR_WHITE, COLOR_BLACK); /* pour les box */
+    init_pair(2, COLOR_WHITE, COLOR_BLUE); /* pour l'etang */
+    init_pair(3, COLOR_BLACK, COLOR_YELLOW); /* pour les poissons */
+    init_pair(4, COLOR_BLACK, COLOR_GREEN); /* pour les requins */
+	init_pair(5, COLOR_WHITE, COLOR_MAGENTA); /* pour les lignes */
+    init_pair(6, COLOR_BLACK, COLOR_RED); /* pour les dynamites */
 	pthread_mutex_lock(&abouges);
 	for(i=0;i<=max_poiss;i++){
 		abouge[i] = 0;
 	}
 	pthread_mutex_unlock(&abouges);
 	
-	creer_fenetre_box_sim();
-	creer_fenetre_sim();
-	creer_fenetre_box_msg();
-	creer_fenetre_msg();
+	creer_fenetre_box_simp();
+	creer_fenetre_simp();
+	creer_fenetre_box_msgp();
+	creer_fenetre_msgp();
 	
 	
 	statut = pthread_create(&gerant, NULL, GestionPref, NULL);
@@ -508,7 +514,7 @@ int main(int argc, char * argv []){
 	
 	for(i=0;i<max_poiss/5;i++){
 		
-		coord=(coord_t*)malloc(sizeof(coord_t)); 
+		coord=(coordp_t*)malloc(sizeof(coordp_t)); 
 		
 		creerPoisson(coord);
 		
